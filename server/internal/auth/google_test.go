@@ -62,7 +62,7 @@ func TestVerifyIDToken(t *testing.T) {
 	n := base64.URLEncoding.EncodeToString(publicKey.N.Bytes())
 	eBytes := big.NewInt(int64(publicKey.E)).Bytes()
 	e := base64.URLEncoding.EncodeToString(eBytes)
-	
+
 	jwk := map[string]interface{}{
 		"kid": "test-key",
 		"n":   n,
