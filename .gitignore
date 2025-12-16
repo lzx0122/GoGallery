@@ -1,0 +1,34 @@
+# Mac 系統檔
+.DS_Store
+
+# Go 編譯檔與依賴
+/bin/
+/dist/
+go.sum
+*.exe
+*.test
+vendor/
+
+# Flutter/Dart 編譯檔
+/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# IDE 設定檔 (VS Code / IDEA)
+.idea/
+.vscode/
+*.swp
+*.iml
+
+# 環境變數與私鑰 (絕對不能上傳!)
+.env
+*.pem
+secrets.yaml
+
+# Podman/Docker
+pgdata/
+docker-compose.override.yml
