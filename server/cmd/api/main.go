@@ -13,6 +13,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
+
+	auth "gogallery/internal/auth"
+	user "gogallery/internal/user"
 )
 
 // 解析 SYSTEM_CONTEXT.md 取得 Schema 區塊 SQL
@@ -92,5 +95,33 @@ func main() {
 		}
 		c.JSON(http.StatusOK, gin.H{"db": "ok"})
 	})
+
+	// Google OAuth2 驗證與 upsert 使用者 (controller)
+	googleAuth := &auth.GoogleAuthService{JWKsURL: "https://www.googleapis.com/oauth2/v3/certs"}
+	userService := &user.Service{DB: db, GoogleAuth: googleAuth}
+	r.POST("/auth/google", func(c *gin.Context) {
+		token := ""
+		if h := c.GetHeader("Authorization"); strings.HasPrefix(h, "Bearer ") {
+			token = strings.TrimPrefix(h, "Bearer ")
+		}
+		if token == "" {
+			c.JSON(400, gin.H{"error": "missing Authorization Bearer token"})
+			return
+		}
+		sub, email, err := userService.UpsertByGoogle(c, token)
+		if err != nil {
+			c.JSON(401, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"sub": sub, "email": email})
+	})
 	r.Run(":8080")
 }
+
+
+
+
+
+
+
+
