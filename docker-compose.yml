@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  api:
+    build: ./server
+    container_name: gogallery_api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_DSN=host=db user=photouser password=secret dbname=photodb sslmode=disable
+    volumes:
+      - ./server/SYSTEM_CONTEXT.md:/app/SYSTEM_CONTEXT.md:ro,z
+      - ./pgdata:/var/lib/postgresql/data:z
+    depends_on:
+      - db
+  db:
+    image: postgres:15-alpine
+    container_name: gogallery_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=photouser
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=photodb
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data:z
+    ports:
+      - "5432:5432"

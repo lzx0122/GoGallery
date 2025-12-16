@@ -32,3 +32,8 @@ secrets.yaml
 # Podman/Docker
 pgdata/
 docker-compose.override.yml
+
+# Go server 編譯檔案
+/server/bin/
+/server/api
+pgdata/
