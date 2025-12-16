@@ -4,25 +4,25 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // 解析 SYSTEM_CONTEXT.md 取得 Schema 區塊 SQL
 func extractSchemaSQL(mdPath string) (string, error) {
-	b, err := ioutil.ReadFile(mdPath)
+	b, err := os.ReadFile(mdPath)
 	if err != nil {
 		return "", err
 	}
 	content := string(b)
-	re := regexp.MustCompile("``sql([\s\S]+?)```")
+	re := regexp.MustCompile("```sql([\\s\\S]+?)```")
 	matches := re.FindAllStringSubmatch(content, -1)
 	if len(matches) == 0 {
 		return "", fmt.Errorf("找不到 SQL 區塊")
@@ -51,12 +51,28 @@ func main() {
 	if dsn == "" {
 		log.Fatal("DB_DSN 環境變數未設定")
 	}
-	// 連線 PostgreSQL
-	db, err := sql.Open("pgx", dsn)
+
+	// 連線 PostgreSQL，重試機制
+	var db *sql.DB
+	var err error
+	maxRetries := 10
+	for i := 1; i <= maxRetries; i++ {
+		db, err = sql.Open("pgx", dsn)
+		if err == nil {
+			err = db.Ping()
+			if err == nil {
+				break
+			}
+		}
+		log.Printf("資料庫連線失敗（第 %d/%d 次）：%v，2 秒後重試...", i, maxRetries, err)
+		db.Close()
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
 		log.Fatalf("連線資料庫失敗: %v", err)
 	}
 	defer db.Close()
+
 	// Migration
 	sqlText, err := extractSchemaSQL("SYSTEM_CONTEXT.md")
 	if err != nil {
@@ -65,6 +81,7 @@ func main() {
 	if err := autoMigrate(db, sqlText); err != nil {
 		log.Fatalf("自動 migration 失敗: %v", err)
 	}
+
 	// 啟動 Gin
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {

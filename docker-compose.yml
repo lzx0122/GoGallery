@@ -10,7 +10,7 @@ services:
     environment:
       - DB_DSN=host=db user=photouser password=secret dbname=photodb sslmode=disable
     volumes:
-      - ./server/SYSTEM_CONTEXT.md:/app/SYSTEM_CONTEXT.md:ro,z
+      - ./SYSTEM_CONTEXT.md:/app/SYSTEM_CONTEXT.md:ro,z
       - ./pgdata:/var/lib/postgresql/data:z
     depends_on:
       - db
