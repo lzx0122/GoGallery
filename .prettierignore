@@ -1,0 +1,14 @@
+# .prettierignore
+
+# 忽略 Go 和 Flutter 程式碼 (交給官方工具)
+*.go
+*.dart
+
+# 忽略編譯與依賴檔
+server/vendor/
+mobile/build/
+mobile/.dart_tool/
+mobile/ios/
+mobile/android/
+go.sum
+pubspec.lock
