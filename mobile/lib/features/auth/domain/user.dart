@@ -9,12 +9,7 @@ class User {
   final String? name;
   final String? photoUrl;
 
-  User({
-    required this.id,
-    required this.email,
-    this.name,
-    this.photoUrl,
-  });
+  User({required this.id, required this.email, this.name, this.photoUrl});
 
   /// 從 Map 建立 User
   factory User.fromMap(Map<String, dynamic> map) {
@@ -28,12 +23,7 @@ class User {
 
   /// 轉換為 Map
   Map<String, dynamic> toMap() {
-    return {
-      'sub': id,
-      'email': email,
-      'name': name,
-      'picture': photoUrl,
-    };
+    return {'sub': id, 'email': email, 'name': name, 'picture': photoUrl};
   }
 
   /// 從 JSON 字串建立 User
