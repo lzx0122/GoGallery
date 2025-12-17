@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   // 使用 ValueNotifier 來觸發 Router 刷新，而不是重建 Router
@@ -19,6 +20,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
     ],
     redirect: (context, state) {
       // 這裡使用 read 來獲取最新狀態，避免觸發 Provider 重建

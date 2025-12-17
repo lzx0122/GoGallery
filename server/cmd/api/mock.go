@@ -14,13 +14,13 @@ func (m *MockGoogleAuth) FetchJWKs() ([]map[string]interface{}, error) {
 	return []map[string]interface{}{}, nil
 }
 
-func (m *MockGoogleAuth) VerifyIDToken(token string, keys []map[string]interface{}) (string, string, string, error) {
+func (m *MockGoogleAuth) VerifyIDToken(token string, keys []map[string]interface{}) (string, string, string, string, error) {
 	log.Printf("[Dev Mode] Mock VerifyIDToken called with token: %s", token)
 
 	// 模擬特定 token 成功，其他失敗
 	if token == "dev-token" {
-		return "dev-google-sub-123", "dev@example.com", "Dev User", nil
+		return "dev-google-sub-123", "dev@example.com", "Dev User", "https://example.com/avatar.jpg", nil
 	}
 
-	return "", "", "", errors.New("invalid dev token")
+	return "", "", "", "", errors.New("invalid dev token")
 }

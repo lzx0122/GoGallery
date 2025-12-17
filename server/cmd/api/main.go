@@ -120,12 +120,12 @@ func main() {
 			c.JSON(400, gin.H{"error": "missing Authorization Bearer token"})
 			return
 		}
-		sub, email, name, err := userService.UpsertByGoogle(c, token)
+		sub, email, name, picture, err := userService.UpsertByGoogle(c, token)
 		if err != nil {
 			c.JSON(401, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"sub": sub, "email": email, "name": name})
+		c.JSON(200, gin.H{"sub": sub, "email": email, "name": name, "picture": picture})
 	})
 	r.Run(":8080")
 }

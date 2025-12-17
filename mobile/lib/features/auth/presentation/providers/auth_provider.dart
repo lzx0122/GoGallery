@@ -85,6 +85,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
         id: googleUser.id,
         email: googleUser.email,
         name: googleUser.displayName,
+        photoUrl: googleUser.photoUrl,
       );
     }
   }

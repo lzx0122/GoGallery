@@ -8,7 +8,7 @@ import (
 // GoogleAuthenticator 定義 Google 驗證介面 (Dependency Inversion)
 type GoogleAuthenticator interface {
 	FetchJWKs() ([]map[string]interface{}, error)
-	VerifyIDToken(token string, keys []map[string]interface{}) (string, string, string, error)
+	VerifyIDToken(token string, keys []map[string]interface{}) (string, string, string, string, error)
 }
 
 // UserService 負責 upsert 使用者
@@ -23,23 +23,23 @@ type Service struct {
 // UpsertByGoogle 驗證 Google Token 並 upsert 使用者
 //
 // 1. 取得 Google JWKs 公鑰
-// 2. 驗證 Token 並取得 sub/email/name
+// 2. 驗證 Token 並取得 sub/email/name/picture
 // 3. upsert 使用者資料（google_sub 唯一）
 //
-// 回傳: sub, email, name, error
-func (s *Service) UpsertByGoogle(ctx context.Context, token string) (string, string, string, error) {
+// 回傳: sub, email, name, picture, error
+func (s *Service) UpsertByGoogle(ctx context.Context, token string) (string, string, string, string, error) {
 	// 取得 Google JWKs 公鑰
 	keys, err := s.GoogleAuth.FetchJWKs()
 	if err != nil {
 		// 取得 JWKs 失敗
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 
-	// 驗證 Token 並取得 sub/email/name
-	sub, email, name, err := s.GoogleAuth.VerifyIDToken(token, keys)
+	// 驗證 Token 並取得 sub/email/name/picture
+	sub, email, name, picture, err := s.GoogleAuth.VerifyIDToken(token, keys)
 	if err != nil {
 		// Token 驗證失敗
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 
 	// upsert 使用者資料
@@ -50,8 +50,8 @@ func (s *Service) UpsertByGoogle(ctx context.Context, token string) (string, str
 	_, err = s.DB.ExecContext(ctx, query, sub, email)
 	if err != nil {
 		// upsert 失敗
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 
-	return sub, email, name, nil
+	return sub, email, name, picture, nil
 }
