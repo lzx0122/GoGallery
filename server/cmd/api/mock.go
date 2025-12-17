@@ -16,11 +16,11 @@ func (m *MockGoogleAuth) FetchJWKs() ([]map[string]interface{}, error) {
 
 func (m *MockGoogleAuth) VerifyIDToken(token string, keys []map[string]interface{}) (string, string, error) {
 	log.Printf("[Dev Mode] Mock VerifyIDToken called with token: %s", token)
-	
+
 	// 模擬特定 token 成功，其他失敗
 	if token == "dev-token" {
 		return "dev-google-sub-123", "dev@example.com", nil
 	}
-	
+
 	return "", "", errors.New("invalid dev token")
 }
