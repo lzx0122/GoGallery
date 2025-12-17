@@ -15,15 +15,11 @@ void main() {
   testWidgets('App starts and shows login screen', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     // 必須使用 ProviderScope 包裹 App，因為我們使用了 Riverpod
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: GoGalleryApp(),
-      ),
-    );
+    await tester.pumpWidget(const ProviderScope(child: GoGalleryApp()));
 
     // 驗證是否顯示了 App 標題 "GoGallery"
     expect(find.text('GoGallery'), findsOneWidget);
-    
+
     // 驗證是否顯示了 "Sign in with Google" 按鈕
     expect(find.text('Sign in with Google'), findsOneWidget);
   });

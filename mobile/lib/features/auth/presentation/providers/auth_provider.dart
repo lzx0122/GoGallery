@@ -69,7 +69,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
   Future<User> _authenticateWithBackend(GoogleSignInAccount googleUser) async {
     final googleAuth = await googleUser.authentication;
     final idToken = googleAuth.idToken;
-    
+
     if (idToken == null) {
       throw Exception('Failed to retrieve ID Token');
     }
