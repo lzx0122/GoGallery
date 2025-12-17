@@ -28,13 +28,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Scale > 1 (Zoom in) -> Fewer columns
     // Scale < 1 (Zoom out) -> More columns
     final newScale = details.scale;
-    
+
     // Use a smoother divisor to make it easier to trigger
     int newCount = (_baseColumnCount / newScale).round();
-    
+
     // Debug print to check if gesture is detected
     debugPrint('Scale: $newScale, New Count: $newCount');
-    
+
     // Clamp between 2 and 6 columns
     newCount = newCount.clamp(2, 6);
 
@@ -97,31 +97,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
               ],
             ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 2.0),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: gridColumnCount,
-                mainAxisSpacing: 2.0,
-                crossAxisSpacing: 2.0,
-                childAspectRatio: 1.0,
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 2.0),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: gridColumnCount,
+                  mainAxisSpacing: 2.0,
+                  crossAxisSpacing: 2.0,
+                  childAspectRatio: 1.0,
+                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final photo = kMockPhotos[index];
+                  return PhotoGridItem(
+                    photo: photo,
+                    onTap: () {
+                      // TODO: Navigate to photo details
+                    },
+                  );
+                }, childCount: kMockPhotos.length),
               ),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final photo = kMockPhotos[index];
-                return PhotoGridItem(
-                  photo: photo,
-                  onTap: () {
-                    // TODO: Navigate to photo details
-                  },
-                );
-              }, childCount: kMockPhotos.length),
             ),
-          ),
-          // Add some bottom padding for the FAB
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ],
+            // Add some bottom padding for the FAB
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
       ),
-    ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           // TODO: Implement upload functionality

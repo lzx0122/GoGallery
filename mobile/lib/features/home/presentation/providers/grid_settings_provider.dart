@@ -11,4 +11,6 @@ class GridColumnCount extends Notifier<int> {
   }
 }
 
-final gridColumnCountProvider = NotifierProvider<GridColumnCount, int>(GridColumnCount.new);
+final gridColumnCountProvider = NotifierProvider<GridColumnCount, int>(
+  GridColumnCount.new,
+);
