@@ -97,7 +97,14 @@ func main() {
 	})
 
 	// Google OAuth2 驗證與 upsert 使用者 (controller)
-	googleAuth := &auth.GoogleAuthService{JWKsURL: "https://www.googleapis.com/oauth2/v3/certs"}
+	var googleAuth user.GoogleAuthenticator
+	if os.Getenv("APP_ENV") == "dev" {
+		log.Println("⚠️ 啟動開發模式 (Dev Mode)：使用 Mock Google Auth")
+		googleAuth = &MockGoogleAuth{}
+	} else {
+		googleAuth = &auth.GoogleAuthService{JWKsURL: "https://www.googleapis.com/oauth2/v3/certs"}
+	}
+
 	userService := &user.Service{DB: db, GoogleAuth: googleAuth}
 	r.POST("/auth/google", func(c *gin.Context) {
 		token := ""
