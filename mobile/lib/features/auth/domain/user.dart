@@ -6,17 +6,30 @@ import 'dart:convert';
 class User {
   final String id;
   final String email;
+  final String? name;
 
-  User({required this.id, required this.email});
+  User({
+    required this.id,
+    required this.email,
+    this.name,
+  });
 
   /// 從 Map 建立 User
   factory User.fromMap(Map<String, dynamic> map) {
-    return User(id: map['sub'] as String, email: map['email'] as String);
+    return User(
+      id: map['sub'] as String,
+      email: map['email'] as String,
+      name: map['name'] as String?,
+    );
   }
 
   /// 轉換為 Map
   Map<String, dynamic> toMap() {
-    return {'sub': id, 'email': email};
+    return {
+      'sub': id,
+      'email': email,
+      'name': name,
+    };
   }
 
   /// 從 JSON 字串建立 User

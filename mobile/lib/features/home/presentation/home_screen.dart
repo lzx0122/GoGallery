@@ -24,7 +24,12 @@ class HomeScreen extends ConsumerWidget {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [Text('Welcome, ${user?.email ?? "Guest"}!')],
+          children: [
+            Text(
+              'Welcome, ${user?.name ?? "Guest"}!',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ],
         ),
       ),
     );

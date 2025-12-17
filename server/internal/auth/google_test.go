@@ -84,7 +84,7 @@ func TestVerifyIDToken(t *testing.T) {
 	}
 
 	s := &GoogleAuthService{}
-	sub, email, err := s.VerifyIDToken(tokenString, keys)
+	sub, email, _, err := s.VerifyIDToken(tokenString, keys)
 	if err != nil {
 		t.Fatalf("VerifyIDToken failed: %v", err)
 	}

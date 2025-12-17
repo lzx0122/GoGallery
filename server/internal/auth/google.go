@@ -65,18 +65,19 @@ func (s *GoogleAuthService) FetchJWKs() ([]map[string]interface{}, error) {
 	return jwks.Keys, nil
 }
 
-// VerifyIDToken 驗證 Google ID Token 並回傳 sub/email
-func (s *GoogleAuthService) VerifyIDToken(token string, keys []map[string]interface{}) (string, string, error) {
+// VerifyIDToken 驗證 Google ID Token 並回傳 sub/email/name
+func (s *GoogleAuthService) VerifyIDToken(token string, keys []map[string]interface{}) (string, string, string, error) {
 	claims, err := verifyGoogleJWT(token, keys)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	sub, ok1 := claims["sub"].(string)
 	email, ok2 := claims["email"].(string)
+	name, _ := claims["name"].(string) // Name is optional or might be missing
 	if !ok1 || !ok2 {
-		return "", "", errors.New("token missing sub/email")
+		return "", "", "", errors.New("token missing sub/email")
 	}
-	return sub, email, nil
+	return sub, email, name, nil
 }
 
 // 驗證 JWT 簽章與解析 claims

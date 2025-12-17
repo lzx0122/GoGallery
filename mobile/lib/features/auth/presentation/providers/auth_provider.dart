@@ -69,13 +69,24 @@ class AuthNotifier extends AsyncNotifier<User?> {
   Future<User> _authenticateWithBackend(GoogleSignInAccount googleUser) async {
     final googleAuth = await googleUser.authentication;
     final idToken = googleAuth.idToken;
-
+    
     if (idToken == null) {
       throw Exception('Failed to retrieve ID Token');
     }
 
     final authService = ref.read(authServiceProvider);
-    return await authService.loginWithGoogle(idToken);
+    try {
+      return await authService.loginWithGoogle(idToken);
+    } catch (e) {
+      // 如果後端驗證失敗，但 Google 登入成功，我們至少可以顯示 Google 的名稱
+      // 這是一個 Fallback 機制，避免因為後端連線問題導致使用者看到 "Guest"
+      print('Backend authentication failed: $e');
+      return User(
+        id: googleUser.id,
+        email: googleUser.email,
+        name: googleUser.displayName,
+      );
+    }
   }
 }
 

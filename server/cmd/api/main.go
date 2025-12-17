@@ -20,9 +20,14 @@ import (
 
 // 解析 SYSTEM_CONTEXT.md 取得 Schema 區塊 SQL
 func extractSchemaSQL(mdPath string) (string, error) {
+	// 嘗試讀取檔案，如果失敗則嘗試上一層目錄
 	b, err := os.ReadFile(mdPath)
 	if err != nil {
-		return "", err
+		// Try parent directory
+		b, err = os.ReadFile("../" + mdPath)
+		if err != nil {
+			return "", err
+		}
 	}
 	content := string(b)
 	re := regexp.MustCompile("```sql([\\s\\S]+?)```")
@@ -115,12 +120,12 @@ func main() {
 			c.JSON(400, gin.H{"error": "missing Authorization Bearer token"})
 			return
 		}
-		sub, email, err := userService.UpsertByGoogle(c, token)
+		sub, email, name, err := userService.UpsertByGoogle(c, token)
 		if err != nil {
 			c.JSON(401, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"sub": sub, "email": email})
+		c.JSON(200, gin.H{"sub": sub, "email": email, "name": name})
 	})
 	r.Run(":8080")
 }

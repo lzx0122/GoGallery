@@ -11,14 +11,14 @@ import (
 // MockGoogleAuth implements GoogleAuthenticator
 type MockGoogleAuth struct {
 	FetchJWKsFunc     func() ([]map[string]interface{}, error)
-	VerifyIDTokenFunc func(token string, keys []map[string]interface{}) (string, string, error)
+	VerifyIDTokenFunc func(token string, keys []map[string]interface{}) (string, string, string, error)
 }
 
 func (m *MockGoogleAuth) FetchJWKs() ([]map[string]interface{}, error) {
 	return m.FetchJWKsFunc()
 }
 
-func (m *MockGoogleAuth) VerifyIDToken(token string, keys []map[string]interface{}) (string, string, error) {
+func (m *MockGoogleAuth) VerifyIDToken(token string, keys []map[string]interface{}) (string, string, string, error) {
 	return m.VerifyIDTokenFunc(token, keys)
 }
 
@@ -33,11 +33,11 @@ func TestUpsertByGoogle(t *testing.T) {
 		FetchJWKsFunc: func() ([]map[string]interface{}, error) {
 			return []map[string]interface{}{{"kid": "1"}}, nil
 		},
-		VerifyIDTokenFunc: func(token string, keys []map[string]interface{}) (string, string, error) {
+		VerifyIDTokenFunc: func(token string, keys []map[string]interface{}) (string, string, string, error) {
 			if token == "valid_token" {
-				return "google_123", "test@example.com", nil
+				return "google_123", "test@example.com", "Test User", nil
 			}
-			return "", "", errors.New("invalid token")
+			return "", "", "", errors.New("invalid token")
 		},
 	}
 
@@ -52,16 +52,16 @@ func TestUpsertByGoogle(t *testing.T) {
 		WithArgs("google_123", "test@example.com").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	sub, email, err := s.UpsertByGoogle(context.Background(), "valid_token")
+	sub, email, name, err := s.UpsertByGoogle(context.Background(), "valid_token")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if sub != "google_123" || email != "test@example.com" {
-		t.Errorf("unexpected result: %s, %s", sub, email)
+	if sub != "google_123" || email != "test@example.com" || name != "Test User" {
+		t.Errorf("unexpected result: %s, %s, %s", sub, email, name)
 	}
 
 	// Test Auth Failure
-	_, _, err = s.UpsertByGoogle(context.Background(), "invalid_token")
+	_, _, _, err = s.UpsertByGoogle(context.Background(), "invalid_token")
 	if err == nil {
 		t.Error("expected error, got nil")
 	}
