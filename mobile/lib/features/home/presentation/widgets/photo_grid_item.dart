@@ -6,11 +6,7 @@ class PhotoGridItem extends StatelessWidget {
   final Photo photo;
   final VoidCallback? onTap;
 
-  const PhotoGridItem({
-    super.key,
-    required this.photo,
-    this.onTap,
-  });
+  const PhotoGridItem({super.key, required this.photo, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -20,18 +16,15 @@ class PhotoGridItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
-        ),
+        decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest),
         child: Stack(
           fit: StackFit.expand,
           children: [
             CachedNetworkImage(
               imageUrl: photo.url,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: colorScheme.surfaceContainerHighest,
-              ),
+              placeholder: (context, url) =>
+                  Container(color: colorScheme.surfaceContainerHighest),
               errorWidget: (context, url, error) => Center(
                 child: Icon(
                   Icons.broken_image_outlined,

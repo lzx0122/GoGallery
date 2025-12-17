@@ -65,24 +65,19 @@ class HomeScreen extends ConsumerWidget {
                 crossAxisSpacing: 2.0,
                 childAspectRatio: 1.0,
               ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final photo = kMockPhotos[index];
-                  return PhotoGridItem(
-                    photo: photo,
-                    onTap: () {
-                      // TODO: Navigate to photo details
-                    },
-                  );
-                },
-                childCount: kMockPhotos.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final photo = kMockPhotos[index];
+                return PhotoGridItem(
+                  photo: photo,
+                  onTap: () {
+                    // TODO: Navigate to photo details
+                  },
+                );
+              }, childCount: kMockPhotos.length),
             ),
           ),
           // Add some bottom padding for the FAB
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 80),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
