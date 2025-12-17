@@ -1,77 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import '../data/auth_service.dart';
+import 'providers/auth_provider.dart';
 
 /// A minimalist login screen following the "Intellectual Minimalism" design system.
-class LoginScreen extends ConsumerStatefulWidget {
+class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends ConsumerState<LoginScreen> {
-  bool _isLoading = false;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile', 'openid'],
-  );
-
-  Future<void> _handleGoogleLogin() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // 1. Sign in with Google
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // User canceled the sign-in
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // 2. Get the ID Token
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final String? idToken = googleAuth.idToken;
-
-      if (idToken == null) {
-        throw Exception('Failed to retrieve ID Token');
-      }
-
-      // 3. Send ID Token to Backend
-      final authService = ref.read(authServiceProvider);
-      final response = await authService.loginWithGoogle(idToken);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login Successful: ${response['email']}')),
-        );
-        // TODO: Navigate to home screen and store session
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Login Failed: $error')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    // 監聽 Auth 狀態
+    final authState = ref.watch(authProvider);
+    final isLoading = authState.isLoading;
+
+    // 監聽錯誤並顯示 SnackBar
+    ref.listen(authProvider, (previous, next) {
+      if (next.hasError && !next.isLoading) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Login Failed: ${next.error}')));
+      }
+    });
 
     return Scaffold(
       body: Center(
@@ -106,7 +58,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 SizedBox(
                   height: 56,
                   child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _handleGoogleLogin,
+                    onPressed: isLoading
+                        ? null
+                        : () =>
+                              ref.read(authProvider.notifier).loginWithGoogle(),
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -115,10 +70,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         color: colorScheme.outline.withOpacity(0.2),
                       ),
                     ),
-                    icon: _isLoading
+                    icon: isLoading
                         ? const SizedBox.shrink()
                         : const FaIcon(FontAwesomeIcons.google, size: 20),
-                    label: _isLoading
+                    label: isLoading
                         ? const SizedBox(
                             height: 24,
                             width: 24,

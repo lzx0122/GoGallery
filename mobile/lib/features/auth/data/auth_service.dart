@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import '../domain/user.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -17,7 +18,10 @@ class AuthService {
     return 'http://localhost:8080';
   }
 
-  Future<Map<String, dynamic>> loginWithGoogle(String idToken) async {
+  /// 使用 Google ID Token 登入後端
+  ///
+  /// 回傳 [User] 物件
+  Future<User> loginWithGoogle(String idToken) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/google'),
       headers: {
@@ -27,7 +31,8 @@ class AuthService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return User.fromMap(data);
     } else {
       throw Exception('Failed to login: ${response.body}');
     }
