@@ -49,30 +49,59 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. 相片資料表
-CREATE TABLE photos (
+-- 2. 媒體資料表 (Media) - 支援照片與影片
+CREATE TABLE media (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
     -- 檔案資訊
     original_filename VARCHAR(255),
-    storage_path VARCHAR(512) NOT NULL, -- 容器內的相對路徑，例如 "2024/01/hash.jpg"
+    storage_path VARCHAR(512) NOT NULL, -- 檔案路徑
     file_hash VARCHAR(64) NOT NULL,     -- SHA-256 雜湊值
     size_bytes BIGINT,
-    mime_type VARCHAR(50),
+    width INT,                          -- 寬度 (px)
+    height INT,                         -- 高度 (px)
+    duration DOUBLE PRECISION,          -- [影片專用] 影片長度 (秒)
+    mime_type VARCHAR(50),              -- e.g. image/jpeg, video/mp4
 
-    -- EXIF 資訊
-    taken_at TIMESTAMPTZ,               -- 關鍵欄位：用於時間軸排序
+    -- EXIF / Metadata 資訊
+    taken_at TIMESTAMPTZ,               -- 拍攝時間
+    latitude DOUBLE PRECISION,          -- 緯度
+    longitude DOUBLE PRECISION,         -- 經度
+    camera_make VARCHAR(100),           -- 設備製造商
+    camera_model VARCHAR(100),          -- 設備型號
+    exposure_time VARCHAR(20),          -- 曝光時間
+    aperture DOUBLE PRECISION,          -- 光圈值
+    iso INTEGER,                        -- ISO
+
+    -- UI 優化與 AI 預留
+    blur_hash VARCHAR(100),             -- BlurHash (影片可使用縮圖生成)
+    dominant_color VARCHAR(9),          -- 主色調
 
     -- 系統資訊
     uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
-    -- 去重限制：同一使用者不能重複上傳相同 Hash 的圖片
+    -- 去重限制
     CONSTRAINT uq_user_hash UNIQUE (user_id, file_hash)
 );
 
 -- 索引優化
-CREATE INDEX idx_photos_taken_at ON photos (user_id, taken_at DESC);
+CREATE INDEX IF NOT EXISTS idx_media_taken_at ON media (user_id, taken_at DESC);
+CREATE INDEX IF NOT EXISTS idx_media_type ON media (user_id, mime_type);
+
+-- Migration: 確保欄位存在 (針對已存在的資料表)
+ALTER TABLE media ADD COLUMN IF NOT EXISTS width INT;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS height INT;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS duration DOUBLE PRECISION;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS camera_make VARCHAR(100);
+ALTER TABLE media ADD COLUMN IF NOT EXISTS camera_model VARCHAR(100);
+ALTER TABLE media ADD COLUMN IF NOT EXISTS exposure_time VARCHAR(20);
+ALTER TABLE media ADD COLUMN IF NOT EXISTS aperture DOUBLE PRECISION;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS iso INTEGER;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS blur_hash VARCHAR(100);
+ALTER TABLE media ADD COLUMN IF NOT EXISTS dominant_color VARCHAR(9);
 ```
 
 ## 5. API 邏輯規範 (API Logic Specifications)
@@ -101,7 +130,7 @@ CREATE INDEX idx_photos_taken_at ON photos (user_id, taken_at DESC);
 請使用以下範本作為 `docker-compose.yml`，特別注意 `:z` 標籤：
 
 ```yaml
-version: "3.8"
+version: '3.8'
 
 services:
   app-server:
@@ -109,7 +138,7 @@ services:
     container_name: photo_backend
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       - DB_DSN=host=postgres user=photouser password=secret dbname=photodb sslmode=disable
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
