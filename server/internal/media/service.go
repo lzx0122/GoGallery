@@ -81,8 +81,14 @@ func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipa
 		return nil, fmt.Errorf("failed to save file: %w", err)
 	}
 
-	// 4. 寫入資料庫
-	// TODO: 解析 EXIF, 寬高, Duration 等 Metadata
+	// 4. 解析 Metadata
+	// 即使解析失敗，我們仍然允許上傳，只是 Metadata 會是空的
+	meta, _ := extractMetadata(absPath, fileHeader.Header.Get("Content-Type"))
+	if meta == nil {
+		meta = &Media{}
+	}
+
+	// 5. 寫入資料庫
 	media := &Media{
 		UserID:           userID,
 		OriginalFilename: fileHeader.Filename,
@@ -90,7 +96,19 @@ func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipa
 		FileHash:         fileHash,
 		SizeBytes:        fileHeader.Size,
 		MimeType:         fileHeader.Header.Get("Content-Type"),
-		// 其他欄位暫時留空或設為預設值
+
+		// Metadata
+		Width:        meta.Width,
+		Height:       meta.Height,
+		Duration:     meta.Duration,
+		TakenAt:      meta.TakenAt,
+		Latitude:     meta.Latitude,
+		Longitude:    meta.Longitude,
+		CameraMake:   meta.CameraMake,
+		CameraModel:  meta.CameraModel,
+		ExposureTime: meta.ExposureTime,
+		Aperture:     meta.Aperture,
+		ISO:          meta.ISO,
 	}
 
 	if err := s.insertMedia(ctx, media); err != nil {
