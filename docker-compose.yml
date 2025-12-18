@@ -9,9 +9,10 @@ services:
       - "8080:8080"
     environment:
       - DB_DSN=host=db user=photouser password=secret dbname=photodb sslmode=disable
+      - UPLOAD_DIR=/app/uploads
     volumes:
       - ./SYSTEM_CONTEXT.md:/app/SYSTEM_CONTEXT.md:ro,z
-      - ./pgdata:/var/lib/postgresql/data:z
+      - ./uploads:/app/uploads:z
     depends_on:
       - db
   db:

@@ -79,6 +79,18 @@ class MediaRepository {
       rethrow;
     }
   }
+
+  Future<void> deleteMedia(String token, String mediaId) async {
+    try {
+      await _dio.delete(
+        '${AppConfig.apiUrl}/media/$mediaId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+    } catch (e) {
+      print('Delete error: $e');
+      rethrow;
+    }
+  }
 }
 
 class DuplicateMediaException implements Exception {

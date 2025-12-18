@@ -192,3 +192,33 @@ func (s *Service) List(ctx context.Context, userID string, limit, offset int) ([
 	}
 	return list, nil
 }
+
+// Delete 刪除媒體
+func (s *Service) Delete(ctx context.Context, userID string, mediaID string) error {
+	// 1. 查詢檔案路徑與確認權限
+	var storagePath string
+	query := `SELECT storage_path FROM media WHERE id = $1 AND user_id = $2`
+	err := s.DB.QueryRowContext(ctx, query, mediaID, userID).Scan(&storagePath)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("media not found or permission denied (id: %s, user: %s)", mediaID, userID)
+		}
+		return fmt.Errorf("failed to query media: %w", err)
+	}
+
+	// 2. 刪除資料庫記錄
+	deleteQuery := `DELETE FROM media WHERE id = $1 AND user_id = $2`
+	_, err = s.DB.ExecContext(ctx, deleteQuery, mediaID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete media record: %w", err)
+	}
+
+	// 3. 刪除實體檔案
+	absPath := filepath.Join(s.UploadDir, storagePath)
+	if err := os.Remove(absPath); err != nil {
+		// 記錄錯誤但不回傳失敗，因為 DB 已經刪除了
+		fmt.Printf("failed to delete file %s: %v\n", absPath, err)
+	}
+
+	return nil
+}

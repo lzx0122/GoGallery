@@ -1,6 +1,7 @@
 package media
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -64,4 +65,31 @@ func (h *Handler) ListHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, list)
+}
+
+// DeleteHandler 刪除媒體
+func (h *Handler) DeleteHandler(c *gin.Context) {
+	userID := c.MustGet("userID").(string)
+	mediaID := c.Param("id")
+
+	// Debug log
+	fmt.Printf("Delete request: userID=%s, mediaID=%s\n", userID, mediaID)
+
+	if mediaID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing media id"})
+		return
+	}
+
+	err := h.Service.Delete(c.Request.Context(), userID, mediaID)
+	if err != nil {
+		// Check for "media not found" in the error string
+		if len(err.Error()) >= 15 && err.Error()[:15] == "media not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

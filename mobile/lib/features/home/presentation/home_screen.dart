@@ -258,6 +258,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         onTap: () {
                           // TODO: Navigate to photo details
                         },
+                        onDelete: () {
+                          ref
+                              .read(mediaListProvider.notifier)
+                              .deleteMedia(media.id);
+                        },
+                        onEdit: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Edit feature coming soon'),
+                            ),
+                          );
+                        },
                       );
                     }, childCount: mediaList.length),
                   ),
