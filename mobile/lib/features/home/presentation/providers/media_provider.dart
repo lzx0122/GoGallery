@@ -27,7 +27,7 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
     final googleSignIn = ref.read(googleSignInProvider);
     final currentUser = googleSignIn.currentUser;
     if (currentUser == null) return null;
-    
+
     final auth = await currentUser.authentication;
     return auth.idToken;
   }
