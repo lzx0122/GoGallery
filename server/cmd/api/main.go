@@ -15,6 +15,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	auth "gogallery/internal/auth"
+	media "gogallery/internal/media"
 	user "gogallery/internal/user"
 )
 
@@ -127,5 +128,25 @@ func main() {
 		}
 		c.JSON(200, gin.H{"sub": sub, "email": email, "name": name, "picture": picture})
 	})
+
+	// Media Service
+	uploadDir := os.Getenv("UPLOAD_DIR")
+	if uploadDir == "" {
+		uploadDir = "uploads"
+	}
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		log.Fatalf("無法建立上傳目錄: %v", err)
+	}
+	mediaService := media.NewService(db, uploadDir)
+	mediaHandler := media.NewHandler(mediaService)
+
+	// Protected Routes
+	api := r.Group("/api")
+	api.Use(auth.AuthMiddleware(db, googleAuth))
+	{
+		api.POST("/upload", mediaHandler.UploadHandler)
+		api.GET("/media", mediaHandler.ListHandler)
+	}
+
 	r.Run(":8080")
 }
