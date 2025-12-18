@@ -1,16 +1,18 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import '../../../core/config/app_config.dart';
 import '../domain/media.dart';
 
 class MediaRepository {
   final Dio _dio;
-  // Android Emulator: 10.0.2.2, iOS Simulator: localhost
-  // For now, hardcode localhost for iOS.
-  static const String _baseUrl = 'http://localhost:8080/api';
 
   MediaRepository({Dio? dio}) : _dio = dio ?? Dio();
 
-  Future<Media?> uploadMedia(File file, String token) async {
+  Future<Media?> uploadMedia(
+    File file,
+    String token, {
+    void Function(int, int)? onSendProgress,
+  }) async {
     try {
       String fileName = file.path.split('/').last;
       FormData formData = FormData.fromMap({
@@ -18,9 +20,10 @@ class MediaRepository {
       });
 
       Response response = await _dio.post(
-        '$_baseUrl/upload',
+        '${AppConfig.apiUrl}/upload',
         data: formData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
+        onSendProgress: onSendProgress,
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -52,7 +55,7 @@ class MediaRepository {
   }) async {
     try {
       Response response = await _dio.get(
-        '$_baseUrl/media',
+        '${AppConfig.apiUrl}/media',
         queryParameters: {'page': page, 'limit': limit},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );

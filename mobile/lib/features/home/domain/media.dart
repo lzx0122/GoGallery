@@ -1,3 +1,6 @@
+import 'dart:io';
+import '../../../core/config/app_config.dart';
+
 class Media {
   final String id;
   final String userId;
@@ -20,6 +23,11 @@ class Media {
   final String dominantColor;
   final DateTime uploadedAt;
 
+  // Uploading state
+  final bool isUploading;
+  final double uploadProgress;
+  final File? localFile;
+
   Media({
     required this.id,
     required this.userId,
@@ -41,7 +49,62 @@ class Media {
     required this.blurHash,
     required this.dominantColor,
     required this.uploadedAt,
+    this.isUploading = false,
+    this.uploadProgress = 0.0,
+    this.localFile,
   });
+
+  Media copyWith({
+    String? id,
+    String? userId,
+    String? originalFilename,
+    String? fileHash,
+    int? sizeBytes,
+    int? width,
+    int? height,
+    double? duration,
+    String? mimeType,
+    DateTime? takenAt,
+    double? latitude,
+    double? longitude,
+    String? cameraMake,
+    String? cameraModel,
+    String? exposureTime,
+    double? aperture,
+    int? iso,
+    String? blurHash,
+    String? dominantColor,
+    DateTime? uploadedAt,
+    bool? isUploading,
+    double? uploadProgress,
+    File? localFile,
+  }) {
+    return Media(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      originalFilename: originalFilename ?? this.originalFilename,
+      fileHash: fileHash ?? this.fileHash,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      duration: duration ?? this.duration,
+      mimeType: mimeType ?? this.mimeType,
+      takenAt: takenAt ?? this.takenAt,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      cameraMake: cameraMake ?? this.cameraMake,
+      cameraModel: cameraModel ?? this.cameraModel,
+      exposureTime: exposureTime ?? this.exposureTime,
+      aperture: aperture ?? this.aperture,
+      iso: iso ?? this.iso,
+      blurHash: blurHash ?? this.blurHash,
+      dominantColor: dominantColor ?? this.dominantColor,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
+      isUploading: isUploading ?? this.isUploading,
+      uploadProgress: uploadProgress ?? this.uploadProgress,
+      localFile: localFile ?? this.localFile,
+    );
+  }
 
   factory Media.fromJson(Map<String, dynamic> json) {
     return Media(
@@ -73,11 +136,8 @@ class Media {
   // Helper to get full URL (assuming local dev for now)
   // In production, this should be configured via environment variables
   String get url {
-    // Android Emulator uses 10.0.2.2 to access host localhost
-    // iOS Simulator uses localhost
-    // For now, let's assume we are running on iOS Simulator or real device with port forwarding
-    // You might need to change this IP based on your setup
-    const baseUrl = 'http://localhost:8080';
+    final baseUrl = AppConfig.baseUrl;
+
     // Construct path: /uploads/uid/year/month/hash.ext
     // But wait, the backend stores relative path in DB but doesn't expose it directly in JSON?
     // Ah, the backend model has `StoragePath` but it is `json:"-"`.

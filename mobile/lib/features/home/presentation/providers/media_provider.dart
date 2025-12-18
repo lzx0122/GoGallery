@@ -41,17 +41,89 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
   }
 
   Future<void> uploadMedia(File file) async {
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempMedia = Media(
+      id: tempId,
+      userId: '', // Placeholder
+      originalFilename: file.path.split('/').last,
+      fileHash: '',
+      sizeBytes: await file.length(),
+      width: 0,
+      height: 0,
+      duration: 0,
+      mimeType: '',
+      cameraMake: '',
+      cameraModel: '',
+      exposureTime: '',
+      aperture: 0,
+      iso: 0,
+      blurHash: '',
+      dominantColor: '',
+      uploadedAt: DateTime.now(),
+      isUploading: true,
+      uploadProgress: 0.0,
+      localFile: file,
+    );
+
+    // Optimistic update: Add to list
+    final currentList = state.value ?? [];
+    state = AsyncValue.data([tempMedia, ...currentList]);
+
     try {
       final token = await _getToken();
       if (token == null) throw Exception("Not logged in");
 
       final repository = ref.read(mediaRepositoryProvider);
-      await repository.uploadMedia(file, token);
-      // Refresh the list
-      ref.invalidateSelf();
-      await future;
+      final result = await repository.uploadMedia(
+        file,
+        token,
+        onSendProgress: (sent, total) {
+          if (total <= 0) return;
+          final progress = sent / total;
+
+          // Update progress
+          final currentList = state.value;
+          if (currentList != null) {
+            state = AsyncValue.data(
+              currentList.map((m) {
+                if (m.id == tempId) {
+                  return m.copyWith(uploadProgress: progress);
+                }
+                return m;
+              }).toList(),
+            );
+          }
+        },
+      );
+
+      // Replace temp with real result
+      final currentListAfterUpload = state.value;
+      if (currentListAfterUpload != null) {
+        if (result != null) {
+          state = AsyncValue.data(
+            currentListAfterUpload.map((m) {
+              if (m.id == tempId) {
+                return result;
+              }
+              return m;
+            }).toList(),
+          );
+        } else {
+          // If skipped (null), remove temp
+          state = AsyncValue.data(
+            currentListAfterUpload.where((m) => m.id != tempId).toList(),
+          );
+        }
+      }
     } catch (e) {
       print("Upload failed: $e");
+      // Remove temp on error
+      final currentListOnError = state.value;
+      if (currentListOnError != null) {
+        state = AsyncValue.data(
+          currentListOnError.where((m) => m.id != tempId).toList(),
+        );
+      }
       rethrow; // 讓 UI 層可以捕捉錯誤
     }
   }

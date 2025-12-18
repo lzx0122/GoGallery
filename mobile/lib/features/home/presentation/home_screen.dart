@@ -43,17 +43,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (image != null) {
         final file = File(image.path);
         await ref.read(mediaListProvider.notifier).uploadMedia(file);
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Upload started...')));
-        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error uploading: $e')));
       }
     }
   }
