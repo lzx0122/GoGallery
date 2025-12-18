@@ -1,0 +1,1 @@
+ALTER TABLE media DROP CONSTRAINT IF EXISTS uq_user_hash;

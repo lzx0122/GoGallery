@@ -25,14 +25,18 @@ func (h *Handler) UploadHandler(c *gin.Context) {
 		return
 	}
 
-	result, err := h.Service.Upload(c.Request.Context(), userID, fileHeader)
+	force := c.Query("force") == "true"
+	result, err := h.Service.Upload(c.Request.Context(), userID, fileHeader, force)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	if result.Status == "skipped" {
-		c.JSON(http.StatusOK, gin.H{"status": "skipped", "reason": "exists"})
+	if result.Status == "conflict" {
+		c.JSON(http.StatusConflict, gin.H{
+			"error":       "duplicate",
+			"existing_id": result.ExistingID,
+		})
 		return
 	}
 

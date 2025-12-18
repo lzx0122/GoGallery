@@ -25,6 +25,8 @@ class Media {
 
   // Uploading state
   final bool isUploading;
+  final bool isDuplicate;
+  final bool isHighlighted;
   final double uploadProgress;
   final File? localFile;
 
@@ -50,6 +52,8 @@ class Media {
     required this.dominantColor,
     required this.uploadedAt,
     this.isUploading = false,
+    this.isDuplicate = false,
+    this.isHighlighted = false,
     this.uploadProgress = 0.0,
     this.localFile,
   });
@@ -76,6 +80,8 @@ class Media {
     String? dominantColor,
     DateTime? uploadedAt,
     bool? isUploading,
+    bool? isDuplicate,
+    bool? isHighlighted,
     double? uploadProgress,
     File? localFile,
   }) {
@@ -101,6 +107,8 @@ class Media {
       dominantColor: dominantColor ?? this.dominantColor,
       uploadedAt: uploadedAt ?? this.uploadedAt,
       isUploading: isUploading ?? this.isUploading,
+      isDuplicate: isDuplicate ?? this.isDuplicate,
+      isHighlighted: isHighlighted ?? this.isHighlighted,
       uploadProgress: uploadProgress ?? this.uploadProgress,
       localFile: localFile ?? this.localFile,
     );

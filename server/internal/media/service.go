@@ -27,12 +27,13 @@ func NewService(db *sql.DB, uploadDir string) *Service {
 
 // UploadResult 包含上傳後的結果
 type UploadResult struct {
-	Media  *Media
-	Status string // "created" or "skipped"
+	Media      *Media
+	Status     string // "created" or "skipped" or "conflict"
+	ExistingID string
 }
 
 // Upload 處理檔案上傳
-func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipart.FileHeader) (*UploadResult, error) {
+func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipart.FileHeader, force bool) (*UploadResult, error) {
 	src, err := fileHeader.Open()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
@@ -52,12 +53,14 @@ func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipa
 	}
 
 	// 2. 檢查去重 (Deduplication)
-	exists, err := s.checkExists(ctx, userID, fileHash)
-	if err != nil {
-		return nil, err
-	}
-	if exists {
-		return &UploadResult{Status: "skipped"}, nil
+	if !force {
+		existingID, err := s.checkExists(ctx, userID, fileHash)
+		if err != nil {
+			return nil, err
+		}
+		if existingID != "" {
+			return &UploadResult{Status: "conflict", ExistingID: existingID}, nil
+		}
 	}
 
 	// 3. 儲存檔案
@@ -120,14 +123,17 @@ func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipa
 	return &UploadResult{Media: media, Status: "created"}, nil
 }
 
-func (s *Service) checkExists(ctx context.Context, userID, fileHash string) (bool, error) {
-	var count int
-	query := `SELECT count(1) FROM media WHERE user_id = $1 AND file_hash = $2`
-	err := s.DB.QueryRowContext(ctx, query, userID, fileHash).Scan(&count)
-	if err != nil {
-		return false, fmt.Errorf("failed to check existence: %w", err)
+func (s *Service) checkExists(ctx context.Context, userID, fileHash string) (string, error) {
+	var id string
+	query := `SELECT id FROM media WHERE user_id = $1 AND file_hash = $2 LIMIT 1`
+	err := s.DB.QueryRowContext(ctx, query, userID, fileHash).Scan(&id)
+	if err == sql.ErrNoRows {
+		return "", nil
 	}
-	return count > 0, nil
+	if err != nil {
+		return "", fmt.Errorf("failed to check existence: %w", err)
+	}
+	return id, nil
 }
 
 func (s *Service) insertMedia(ctx context.Context, m *Media) error {

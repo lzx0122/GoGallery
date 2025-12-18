@@ -20,6 +20,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   double _baseScale = 1.0;
   int _baseColumnCount = 3;
   final ImagePicker _picker = ImagePicker();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void _handleScaleStart(ScaleStartDetails details) {
     _baseColumnCount = ref.read(gridColumnCountProvider);
@@ -37,12 +44,101 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _scrollToItem(String id) async {
+    final mediaList = ref.read(mediaListProvider).value;
+    if (mediaList == null) return;
+
+    final index = mediaList.indexWhere((m) => m.id == id);
+    if (index == -1) return;
+
+    final columnCount = ref.read(gridColumnCountProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Assuming 2.0 spacing
+    final itemWidth = (screenWidth - (columnCount - 1) * 2.0) / columnCount;
+    final row = index ~/ columnCount;
+
+    // Calculate offset: row * itemHeight + spacing
+    // itemHeight = itemWidth (aspect ratio 1.0)
+    final offset = row * (itemWidth + 2.0);
+
+    // Add some padding to show context (e.g. center it or show a bit above)
+    // Let's try to center it in the viewport if possible, or at least bring it to top
+    // Viewport height is roughly screenHeight - kToolbarHeight - statusBarHeight
+    // But simple animateTo is usually enough.
+
+    // Ensure we don't scroll past bounds (ScrollController handles this mostly)
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        offset,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   Future<void> _pickAndUploadImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
         final file = File(image.path);
-        await ref.read(mediaListProvider.notifier).uploadMedia(file);
+        final result = await ref
+            .read(mediaListProvider.notifier)
+            .uploadMedia(file);
+
+        if (result.status == UploadStatus.duplicate && mounted) {
+          if (result.existingId != null) {
+            await _scrollToItem(result.existingId!);
+          }
+
+          // Show SnackBar
+          ScaffoldMessenger.of(context)
+              .showSnackBar(
+                SnackBar(
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.all(16),
+                  duration: const Duration(seconds: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  content: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.amber),
+                      const SizedBox(width: 12),
+                      const Expanded(child: Text('Duplicate photo detected')),
+                      TextButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        },
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ref
+                              .read(mediaListProvider.notifier)
+                              .uploadMedia(file, force: true);
+                        },
+                        child: const Text(
+                          'Upload',
+                          style: TextStyle(color: Colors.amber),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .closed
+              .then((_) {
+                if (result.existingId != null) {
+                  ref
+                      .read(mediaListProvider.notifier)
+                      .clearHighlight(result.existingId!);
+                }
+              });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -68,6 +164,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onScaleStart: _handleScaleStart,
         onScaleUpdate: _handleScaleUpdate,
         child: CustomScrollView(
+          controller: _scrollController,
           slivers: [
             SliverAppBar(
               floating: true,
@@ -91,12 +188,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: CircleAvatar(
                         radius: 18,
                         backgroundColor: colorScheme.primaryContainer,
-                        backgroundImage: user.photoUrl != null
+                        backgroundImage:
+                            (user.photoUrl != null &&
+                                user.photoUrl!.startsWith('http'))
                             ? NetworkImage(user.photoUrl!)
                             : null,
-                        child: user.photoUrl == null
+                        child:
+                            (user.photoUrl == null ||
+                                !user.photoUrl!.startsWith('http'))
                             ? Text(
-                                user.name?.substring(0, 1).toUpperCase() ?? 'U',
+                                (user.name != null && user.name!.isNotEmpty)
+                                    ? user.name!.substring(0, 1).toUpperCase()
+                                    : 'U',
                                 style: TextStyle(
                                   color: colorScheme.onPrimaryContainer,
                                 ),

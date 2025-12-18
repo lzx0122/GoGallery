@@ -12,6 +12,14 @@ final mediaListProvider = AsyncNotifierProvider<MediaListNotifier, List<Media>>(
   },
 );
 
+enum UploadStatus { success, duplicate, error }
+
+class UploadResult {
+  final UploadStatus status;
+  final String? existingId;
+  UploadResult(this.status, {this.existingId});
+}
+
 class MediaListNotifier extends AsyncNotifier<List<Media>> {
   @override
   Future<List<Media>> build() async {
@@ -40,34 +48,55 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
     return repository.fetchMediaList(token);
   }
 
-  Future<void> uploadMedia(File file) async {
-    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-    final tempMedia = Media(
-      id: tempId,
-      userId: '', // Placeholder
-      originalFilename: file.path.split('/').last,
-      fileHash: '',
-      sizeBytes: await file.length(),
-      width: 0,
-      height: 0,
-      duration: 0,
-      mimeType: '',
-      cameraMake: '',
-      cameraModel: '',
-      exposureTime: '',
-      aperture: 0,
-      iso: 0,
-      blurHash: '',
-      dominantColor: '',
-      uploadedAt: DateTime.now(),
-      isUploading: true,
-      uploadProgress: 0.0,
-      localFile: file,
-    );
+  Future<void> clearHighlight(String id) async {
+    final currentList = state.value;
+    if (currentList != null) {
+      state = AsyncValue.data(
+        currentList.map((m) {
+          if (m.id == id) {
+            return m.copyWith(isHighlighted: false);
+          }
+          return m;
+        }).toList(),
+      );
+    }
+  }
 
-    // Optimistic update: Add to list
-    final currentList = state.value ?? [];
-    state = AsyncValue.data([tempMedia, ...currentList]);
+  Future<UploadResult> uploadMedia(File file, {bool force = false}) async {
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+
+    // Only add optimistic item if NOT forcing (first attempt)
+    // If forcing, we assume we are updating/replacing or just adding a duplicate,
+    // but for now let's keep it simple: always add optimistic item, remove if duplicate found.
+    if (!force) {
+      final tempMedia = Media(
+        id: tempId,
+        userId: '', // Placeholder
+        originalFilename: file.path.split('/').last,
+        fileHash: '',
+        sizeBytes: await file.length(),
+        width: 0,
+        height: 0,
+        duration: 0,
+        mimeType: '',
+        cameraMake: '',
+        cameraModel: '',
+        exposureTime: '',
+        aperture: 0,
+        iso: 0,
+        blurHash: '',
+        dominantColor: '',
+        uploadedAt: DateTime.now(),
+        isUploading: true,
+        isDuplicate: false,
+        uploadProgress: 0.0,
+        localFile: file,
+      );
+
+      // Optimistic update: Add to list
+      final currentList = state.value ?? [];
+      state = AsyncValue.data([tempMedia, ...currentList]);
+    }
 
     try {
       final token = await _getToken();
@@ -77,6 +106,7 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
       final result = await repository.uploadMedia(
         file,
         token,
+        force: force,
         onSendProgress: (sent, total) {
           if (total <= 0) return;
           final progress = sent / total;
@@ -84,22 +114,29 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
           // Update progress
           final currentList = state.value;
           if (currentList != null) {
-            state = AsyncValue.data(
-              currentList.map((m) {
-                if (m.id == tempId) {
-                  return m.copyWith(uploadProgress: progress);
-                }
-                return m;
-              }).toList(),
-            );
+            // If forcing, we might not have a tempId in the list if we didn't add it?
+            // Actually, if force=true, we probably want to show progress too.
+            // But for simplicity, let's just handle the non-force progress for now
+            // or assume the caller handles UI for force upload.
+            if (!force) {
+              state = AsyncValue.data(
+                currentList.map((m) {
+                  if (m.id == tempId) {
+                    return m.copyWith(uploadProgress: progress);
+                  }
+                  return m;
+                }).toList(),
+              );
+            }
           }
         },
       );
 
-      // Replace temp with real result
-      final currentListAfterUpload = state.value;
-      if (currentListAfterUpload != null) {
-        if (result != null) {
+      // Success
+      if (!force) {
+        // Replace temp with real result
+        final currentListAfterUpload = state.value;
+        if (currentListAfterUpload != null && result != null) {
           state = AsyncValue.data(
             currentListAfterUpload.map((m) {
               if (m.id == tempId) {
@@ -108,23 +145,49 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
               return m;
             }).toList(),
           );
-        } else {
-          // If skipped (null), remove temp
-          state = AsyncValue.data(
-            currentListAfterUpload.where((m) => m.id != tempId).toList(),
-          );
+        }
+      } else {
+        // Force upload success: Add the new result to the list
+        // (It might be a duplicate in content but new ID)
+        final currentList = state.value ?? [];
+        if (result != null) {
+          state = AsyncValue.data([result, ...currentList]);
         }
       }
+      return UploadResult(UploadStatus.success);
+    } on DuplicateMediaException catch (e) {
+      // Remove the optimistic item AND highlight existing one in a single update
+      final currentList = state.value;
+      if (currentList != null) {
+        print("Duplicate detected. Existing ID: ${e.existingId}");
+
+        final newList = currentList
+            .where((m) => m.id != tempId) // Remove temp
+            .map((m) {
+              if (e.existingId != null && m.id == e.existingId) {
+                print("Highlighting media: ${m.id}");
+                return m.copyWith(isHighlighted: true);
+              }
+              return m;
+            })
+            .toList();
+
+        state = AsyncValue.data(newList);
+      }
+
+      return UploadResult(UploadStatus.duplicate, existingId: e.existingId);
     } catch (e) {
       print("Upload failed: $e");
       // Remove temp on error
-      final currentListOnError = state.value;
-      if (currentListOnError != null) {
-        state = AsyncValue.data(
-          currentListOnError.where((m) => m.id != tempId).toList(),
-        );
+      if (!force) {
+        final currentListOnError = state.value;
+        if (currentListOnError != null) {
+          state = AsyncValue.data(
+            currentListOnError.where((m) => m.id != tempId).toList(),
+          );
+        }
       }
-      rethrow; // 讓 UI 層可以捕捉錯誤
+      return UploadResult(UploadStatus.error);
     }
   }
 }

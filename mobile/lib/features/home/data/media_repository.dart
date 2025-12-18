@@ -11,6 +11,7 @@ class MediaRepository {
   Future<Media?> uploadMedia(
     File file,
     String token, {
+    bool force = false,
     void Function(int, int)? onSendProgress,
   }) async {
     try {
@@ -21,6 +22,7 @@ class MediaRepository {
 
       Response response = await _dio.post(
         '${AppConfig.apiUrl}/upload',
+        queryParameters: {'force': force},
         data: formData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
         onSendProgress: onSendProgress,
@@ -42,6 +44,13 @@ class MediaRepository {
         return Media.fromJson(response.data);
       }
       return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        final existingId = e.response?.data['existing_id'] as String?;
+        throw DuplicateMediaException(existingId: existingId);
+      }
+      print('Upload error: $e');
+      rethrow;
     } catch (e) {
       print('Upload error: $e');
       rethrow;
@@ -70,4 +79,15 @@ class MediaRepository {
       rethrow;
     }
   }
+}
+
+class DuplicateMediaException implements Exception {
+  final String message;
+  final String? existingId;
+  DuplicateMediaException({
+    this.message = "Duplicate media detected",
+    this.existingId,
+  });
+  @override
+  String toString() => "DuplicateMediaException: $message (ID: $existingId)";
 }
