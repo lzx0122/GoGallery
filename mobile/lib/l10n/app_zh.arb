@@ -1,0 +1,44 @@
+{
+  "appTitle": "GoGallery",
+  "navHome": "首頁",
+  "navSearch": "搜尋",
+  "navAlbums": "相簿",
+  "navProfile": "個人檔案",
+  "navSettings": "設定",
+
+  "actionUpload": "上傳",
+  "actionDelete": "刪除",
+  "actionShare": "分享",
+  "actionCancel": "取消",
+  "actionConfirm": "確認",
+  "actionSave": "儲存",
+  "actionEdit": "編輯",
+  "actionRetry": "重試",
+
+  "authLogin": "登入",
+  "authLogout": "登出",
+  "authSignInGoogle": "使用 Google 登入",
+  "authWelcome": "歡迎使用 GoGallery",
+  "authDescription": "您的個人相簿，安全且優雅。",
+
+  "commonPhoto": "相片",
+  "commonVideo": "影片",
+  "commonAlbum": "相簿",
+  "commonNoData": "尚無資料",
+  "commonLoading": "載入中...",
+
+  "homeEmptyTitle": "尚無相片",
+  "homeEmptyDescription": "點擊 + 按鈕開始上傳",
+  "uploadDuplicate": "偵測到重複相片",
+
+  "settingsTheme": "主題",
+  "settingsLanguage": "語言",
+  "settingsDarkMode": "深色模式",
+  "settingsLightMode": "淺色模式",
+  "settingsSystemMode": "系統預設",
+  "settingsAbout": "關於",
+
+  "errorGeneric": "發生錯誤",
+  "errorNetwork": "網路錯誤，請重試",
+  "errorPermission": "權限不足"
+}

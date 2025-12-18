@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:mobile/l10n/generated/app_localizations.dart';
 import 'providers/auth_provider.dart';
 
 /// A minimalist login screen following the "Intellectual Minimalism" design system.
@@ -11,6 +12,7 @@ class LoginScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     // 監聽 Auth 狀態
     final authState = ref.watch(authProvider);
@@ -37,7 +39,7 @@ class LoginScreen extends ConsumerWidget {
               children: [
                 // Logo or Title Area
                 Text(
-                  'GoGallery',
+                  l10n.appTitle,
                   style: theme.textTheme.displayMedium?.copyWith(
                     color: colorScheme.primary,
                     letterSpacing: -0.5,
@@ -46,7 +48,7 @@ class LoginScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Welcome back',
+                  l10n.authWelcome,
                   style: theme.textTheme.titleLarge?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -80,7 +82,7 @@ class LoginScreen extends ConsumerWidget {
                             child: CircularProgressIndicator(strokeWidth: 2.5),
                           )
                         : Text(
-                            'Sign in with Google',
+                            l10n.authSignInGoogle,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),

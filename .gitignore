@@ -4,7 +4,6 @@
 # Go 編譯檔與依賴
 /bin/
 /dist/
-go.sum
 *.exe
 *.test
 vendor/
@@ -32,6 +31,9 @@ secrets.yaml
 # Podman/Docker
 pgdata/
 docker-compose.override.yml
+
+# Mobile Generated
+mobile/lib/l10n/generated/
 
 # Go server (handled by server/.gitignore, but keeping these for safety)
 /server/bin/

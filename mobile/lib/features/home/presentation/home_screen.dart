@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobile/l10n/generated/app_localizations.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
 import 'providers/grid_settings_provider.dart';
 import 'providers/media_provider.dart';
@@ -104,14 +105,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     children: [
                       const Icon(Icons.info_outline, color: Colors.amber),
                       const SizedBox(width: 12),
-                      const Expanded(child: Text('Duplicate photo detected')),
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context)!.uploadDuplicate,
+                        ),
+                      ),
                       TextButton(
                         onPressed: () {
                           ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         },
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(color: Colors.white70),
+                        child: Text(
+                          AppLocalizations.of(context)!.actionCancel,
+                          style: const TextStyle(color: Colors.white70),
                         ),
                       ),
                       TextButton(
@@ -121,9 +126,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               .read(mediaListProvider.notifier)
                               .uploadMedia(file, force: true);
                         },
-                        child: const Text(
-                          'Upload',
-                          style: TextStyle(color: Colors.amber),
+                        child: Text(
+                          AppLocalizations.of(context)!.actionUpload,
+                          style: const TextStyle(color: Colors.amber),
                         ),
                       ),
                     ],
@@ -156,6 +161,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final mediaListAsync = ref.watch(mediaListProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -172,7 +178,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               backgroundColor: colorScheme.surface.withOpacity(0.95),
               surfaceTintColor: Colors.transparent,
               title: Text(
-                'Gallery',
+                l10n.appTitle,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
@@ -225,14 +231,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No photos yet',
+                            l10n.homeEmptyTitle,
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Tap the + button to upload',
+                            l10n.homeEmptyDescription,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -290,7 +296,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _pickAndUploadImage,
         icon: const Icon(Icons.add_photo_alternate_outlined),
-        label: const Text('Upload'),
+        label: Text(l10n.actionUpload),
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
         elevation: 2,

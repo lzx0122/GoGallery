@@ -1,0 +1,48 @@
+{
+  "appTitle": "GoGallery",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  
+  "navHome": "Home",
+  "navSearch": "Search",
+  "navAlbums": "Albums",
+  "navProfile": "Profile",
+  "navSettings": "Settings",
+
+  "actionUpload": "Upload",
+  "actionDelete": "Delete",
+  "actionShare": "Share",
+  "actionCancel": "Cancel",
+  "actionConfirm": "Confirm",
+  "actionSave": "Save",
+  "actionEdit": "Edit",
+  "actionRetry": "Retry",
+
+  "authLogin": "Log In",
+  "authLogout": "Log Out",
+  "authSignInGoogle": "Sign in with Google",
+  "authWelcome": "Welcome to GoGallery",
+  "authDescription": "Your personal photo gallery, secure and beautiful.",
+
+  "commonPhoto": "Photo",
+  "commonVideo": "Video",
+  "commonAlbum": "Album",
+  "commonNoData": "No data available",
+  "commonLoading": "Loading...",
+
+  "homeEmptyTitle": "No photos yet",
+  "homeEmptyDescription": "Tap the + button to upload",
+  "uploadDuplicate": "Duplicate photo detected",
+
+  "settingsTheme": "Theme",
+  "settingsLanguage": "Language",
+  "settingsDarkMode": "Dark Mode",
+  "settingsLightMode": "Light Mode",
+  "settingsSystemMode": "System Default",
+  "settingsAbout": "About",
+
+  "errorGeneric": "Something went wrong",
+  "errorNetwork": "Network error, please try again",
+  "errorPermission": "Permission denied"
+}

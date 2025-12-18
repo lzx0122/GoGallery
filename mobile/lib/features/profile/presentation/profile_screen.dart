@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/l10n/generated/app_localizations.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -17,7 +18,7 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.navProfile)),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
@@ -69,8 +70,18 @@ class ProfileScreen extends ConsumerWidget {
 
           // Actions
           ListTile(
+            leading: Icon(Icons.settings, color: colorScheme.onSurface),
+            title: Text(AppLocalizations.of(context)!.navSettings),
+            onTap: () {
+              context.push('/settings');
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+            title: Text(
+              AppLocalizations.of(context)!.authLogout,
+              style: const TextStyle(color: Colors.red),
+            ),
             onTap: () async {
               await ref.read(authProvider.notifier).logout();
             },
