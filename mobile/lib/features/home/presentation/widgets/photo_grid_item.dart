@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../domain/photo.dart';
+import 'package:flutter_blurhash/flutter_blurhash.dart';
+import '../../domain/media.dart';
 
 class PhotoGridItem extends StatelessWidget {
-  final Photo photo;
+  final Media media;
   final VoidCallback? onTap;
 
-  const PhotoGridItem({super.key, required this.photo, this.onTap});
+  const PhotoGridItem({super.key, required this.media, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +21,13 @@ class PhotoGridItem extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            if (media.blurHash.isNotEmpty) BlurHash(hash: media.blurHash),
             CachedNetworkImage(
-              imageUrl: photo.url,
+              imageUrl: media.url,
               fit: BoxFit.cover,
-              placeholder: (context, url) =>
-                  Container(color: colorScheme.surfaceContainerHighest),
+              placeholder: (context, url) => media.blurHash.isNotEmpty
+                  ? const SizedBox.shrink() // BlurHash is already showing
+                  : Container(color: colorScheme.surfaceContainerHighest),
               errorWidget: (context, url, error) => Center(
                 child: Icon(
                   Icons.broken_image_outlined,
@@ -32,6 +35,7 @@ class PhotoGridItem extends StatelessWidget {
                   size: 24,
                 ),
               ),
+              fadeInDuration: const Duration(milliseconds: 300),
             ),
             // Optional: Add a subtle gradient or overlay if needed for selection state later
             Material(

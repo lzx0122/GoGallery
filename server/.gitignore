@@ -1,0 +1,15 @@
+# Binaries
+api
+__debug_bin*
+*.exe
+*.test
+
+# Directories
+uploads/
+tmp/
+
+# Logs
+*.log
+
+# Environment Variables
+.env

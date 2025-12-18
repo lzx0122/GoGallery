@@ -1,10 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
-import '../domain/photo.dart';
 import 'providers/grid_settings_provider.dart';
+import 'providers/media_provider.dart';
 import 'widgets/photo_grid_item.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -17,6 +19,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   double _baseScale = 1.0;
   int _baseColumnCount = 3;
+  final ImagePicker _picker = ImagePicker();
 
   void _handleScaleStart(ScaleStartDetails details) {
     _baseColumnCount = ref.read(gridColumnCountProvider);
@@ -24,18 +27,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _handleScaleUpdate(ScaleUpdateDetails details) {
-    // Calculate new column count based on scale
-    // Scale > 1 (Zoom in) -> Fewer columns
-    // Scale < 1 (Zoom out) -> More columns
     final newScale = details.scale;
-
-    // Use a smoother divisor to make it easier to trigger
     int newCount = (_baseColumnCount / newScale).round();
-
-    // Debug print to check if gesture is detected
-    debugPrint('Scale: $newScale, New Count: $newCount');
-
-    // Clamp between 2 and 6 columns
     newCount = newCount.clamp(2, 6);
 
     if (newCount != ref.read(gridColumnCountProvider)) {
@@ -44,10 +37,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        final file = File(image.path);
+        await ref.read(mediaListProvider.notifier).uploadMedia(file);
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Upload started...')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).value;
     final gridColumnCount = ref.watch(gridColumnCountProvider);
+    final mediaListAsync = ref.watch(mediaListProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -97,24 +112,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
               ],
             ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 2.0),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: gridColumnCount,
-                  mainAxisSpacing: 2.0,
-                  crossAxisSpacing: 2.0,
-                  childAspectRatio: 1.0,
-                ),
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final photo = kMockPhotos[index];
-                  return PhotoGridItem(
-                    photo: photo,
-                    onTap: () {
-                      // TODO: Navigate to photo details
-                    },
+            mediaListAsync.when(
+              data: (mediaList) {
+                if (mediaList.isEmpty) {
+                  return SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.photo_library_outlined,
+                            size: 64,
+                            color: colorScheme.outline,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No photos yet',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Tap the + button to upload',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   );
-                }, childCount: kMockPhotos.length),
+                }
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: gridColumnCount,
+                      mainAxisSpacing: 2.0,
+                      crossAxisSpacing: 2.0,
+                      childAspectRatio: 1.0,
+                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final media = mediaList[index];
+                      return PhotoGridItem(
+                        media: media,
+                        onTap: () {
+                          // TODO: Navigate to photo details
+                        },
+                      );
+                    }, childCount: mediaList.length),
+                  ),
+                );
+              },
+              loading: () => const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (err, stack) => SliverFillRemaining(
+                child: Center(child: Text('Error: $err')),
               ),
             ),
             // Add some bottom padding for the FAB
@@ -123,9 +178,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: Implement upload functionality
-        },
+        onPressed: _pickAndUploadImage,
         icon: const Icon(Icons.add_photo_alternate_outlined),
         label: const Text('Upload'),
         backgroundColor: colorScheme.primary,

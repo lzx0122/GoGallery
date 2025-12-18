@@ -22,6 +22,7 @@ class AuthService {
   ///
   /// 回傳 [User] 物件
   Future<User> loginWithGoogle(String idToken) async {
+    // 直接使用真實的 Google ID Token
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/google'),
       headers: {

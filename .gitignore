@@ -33,7 +33,10 @@ secrets.yaml
 pgdata/
 docker-compose.override.yml
 
-# Go server 編譯檔案
+# Go server (handled by server/.gitignore, but keeping these for safety)
 /server/bin/
 /server/api
-pgdata/
+/server/uploads/
+/server/tmp/
+/server/*.log
+/server/__debug_bin*

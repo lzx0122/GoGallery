@@ -71,7 +71,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
     final idToken = googleAuth.idToken;
 
     if (idToken == null) {
-      throw Exception('Failed to retrieve ID Token');
+      throw Exception('Failed to get Google ID Token');
     }
 
     final authService = ref.read(authServiceProvider);

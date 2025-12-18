@@ -152,7 +152,7 @@ func (s *Service) List(ctx context.Context, userID string, limit, offset int) ([
 	}
 	defer rows.Close()
 
-	var list []*Media
+	list := []*Media{} // Initialize as empty slice to ensure JSON [] instead of null
 	for rows.Next() {
 		m := &Media{}
 		err := rows.Scan(

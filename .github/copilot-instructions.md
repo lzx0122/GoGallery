@@ -9,6 +9,12 @@
 - **SOLID 原則**：所有程式碼設計必須符合 SOLID 原則，特別是「單一職責原則 (SRP)」。
 - **DRY (Don't Repeat Yourself)**：重複邏輯必須抽取為共用函式或元件。
 - **註解**：關鍵邏輯、介面 (Interface) 定義與複雜演算法必須加上繁體中文 (Traditional Chinese) 註解, 註解不掉太多多餘的廢話。
+- **安全**：
+  - 所有外部輸入 (如 HTTP 請求參數、資料庫查詢參數) 必須妥善驗證與消毒 (Sanitize)。
+  - 資料庫操作必須使用參數化查詢 (Parameterized Queries) 以防止 SQL Injection。
+  - gosec 靜態程式碼掃描警告必須全部修正。
+- **錯誤處理**：所有可能失敗的操作必須回傳錯誤，並在適當層級處理或記錄。
+- **日誌 (Logging)**：使用結構化日誌 (Structured Logging)，並包含足夠的上下文資訊 (如 Request ID、使用者 ID)。
 
 ## 2. Backend (Golang) 規範
 

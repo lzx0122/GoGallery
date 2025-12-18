@@ -82,7 +82,7 @@ CREATE TABLE media (
     uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
     -- 去重限制
-    CONSTRAINT uq_user_hash UNIQUE (user_id, file_hash)
+    CONSTRAINT uq_media_user_hash UNIQUE (user_id, file_hash)
 );
 
 -- 索引優化
