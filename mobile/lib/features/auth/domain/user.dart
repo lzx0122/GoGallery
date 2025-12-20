@@ -8,8 +8,15 @@ class User {
   final String email;
   final String? name;
   final String? photoUrl;
+  final String? token; // 用於儲存 ID Token
 
-  User({required this.id, required this.email, this.name, this.photoUrl});
+  User({
+    required this.id,
+    required this.email,
+    this.name,
+    this.photoUrl,
+    this.token,
+  });
 
   /// 從 Map 建立 User
   factory User.fromMap(Map<String, dynamic> map) {
@@ -18,6 +25,7 @@ class User {
       email: map['email'] as String,
       name: map['name'] as String?,
       photoUrl: map['picture'] as String?,
+      token: map['token'] as String?,
     );
   }
 

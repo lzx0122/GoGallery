@@ -80,14 +80,51 @@ class MediaRepository {
     }
   }
 
-  Future<void> deleteMedia(String token, String mediaId) async {
+  Future<void> deleteMedia(String token, String mediaId,
+      {bool permanent = false}) async {
     try {
       await _dio.delete(
         '${AppConfig.apiUrl}/media/$mediaId',
+        queryParameters: {'permanent': permanent},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
     } catch (e) {
       print('Delete error: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Media>> fetchTrashList(
+    String token, {
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      Response response = await _dio.get(
+        '${AppConfig.apiUrl}/media/trash',
+        queryParameters: {'page': page, 'limit': limit},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> list = response.data ?? [];
+        return list.map((e) => Media.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Fetch trash list error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreMedia(String token, String mediaId) async {
+    try {
+      await _dio.post(
+        '${AppConfig.apiUrl}/media/$mediaId/restore',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+    } catch (e) {
+      print('Restore error: $e');
       rethrow;
     }
   }

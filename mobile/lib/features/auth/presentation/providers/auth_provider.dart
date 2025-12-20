@@ -86,6 +86,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
         email: googleUser.email,
         name: googleUser.displayName,
         photoUrl: googleUser.photoUrl,
+        token: idToken, // 即使後端失敗，暫時保存 Token 以供重試或除錯
       );
     }
   }

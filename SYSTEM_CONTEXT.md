@@ -98,6 +98,18 @@ ALTER TABLE media ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
 ALTER TABLE media ADD COLUMN IF NOT EXISTS camera_make VARCHAR(100);
 ALTER TABLE media ADD COLUMN IF NOT EXISTS camera_model VARCHAR(100);
 ALTER TABLE media ADD COLUMN IF NOT EXISTS exposure_time VARCHAR(20);
+
+-- Soft Delete Migration
+ALTER TABLE media ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_media_deleted_at ON media (deleted_at);
+
+-- Drop old constraint if exists (to allow soft-deleted duplicates)
+ALTER TABLE media DROP CONSTRAINT IF EXISTS uq_user_hash;
+ALTER TABLE media DROP CONSTRAINT IF EXISTS uq_media_user_hash;
+
+-- Drop the partial unique index to allow active duplicates (Keep Both feature)
+DROP INDEX IF EXISTS idx_media_user_hash_active;
+
 ALTER TABLE media ADD COLUMN IF NOT EXISTS aperture DOUBLE PRECISION;
 ALTER TABLE media ADD COLUMN IF NOT EXISTS iso INTEGER;
 ALTER TABLE media ADD COLUMN IF NOT EXISTS blur_hash VARCHAR(100);

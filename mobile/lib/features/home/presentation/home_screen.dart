@@ -15,6 +15,8 @@ import 'providers/media_selection_provider.dart';
 import 'widgets/photo_grid_item.dart';
 import 'widgets/full_image_viewer.dart';
 import 'widgets/media_thumbnail.dart';
+import 'widgets/custom_bottom_navigation.dart';
+import 'trash_screen.dart';
 
 enum _DuplicateAction { cancel, upload, uploadAll, cancelAll }
 
@@ -27,6 +29,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  int _currentIndex = 0;
   double _baseScale = 1.0;
   int _baseColumnCount = 3;
   final ImagePicker _picker = ImagePicker();
@@ -631,234 +634,308 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: colorScheme.surface,
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onScaleStart: _handleScaleStart,
-        onScaleUpdate: _handleScaleUpdate,
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverAppBar(
-              floating: true,
-              snap: true,
-              backgroundColor: isSelecting
-                  ? colorScheme.surfaceContainerHighest
-                  : colorScheme.surface.withOpacity(0.95),
-              surfaceTintColor: Colors.transparent,
-              leading: isSelecting
-                  ? IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        ref.read(mediaSelectionProvider.notifier).clear();
-                      },
-                    )
-                  : null,
-              title: isSelecting
-                  ? Text(
-                      '${selectedIds.length}',
-                      style: theme.textTheme.titleLarge,
-                    )
-                  : Text(
-                      l10n.appTitle,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-              centerTitle: false,
-              actions: isSelecting
-                  ? [
-                      if (selectedIds.length == 1)
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Edit feature coming soon'),
-                              ),
-                            );
-                          },
-                        ),
-                      IconButton(
-                        icon: const Icon(Icons.share_outlined),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Share feature coming soon'),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () {
-                          _deleteSelected(selectedIds);
-                        },
-                      ),
-                    ]
-                  : [
-                      IconButton(
-                        icon: const Icon(Icons.map_outlined),
-                        onPressed: () => context.push('/map'),
-                      ),
-                      if (user != null)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
-                          child: GestureDetector(
-                            onTap: () => context.push('/profile'),
-                            child: CircleAvatar(
-                              radius: 18,
-                              backgroundColor: colorScheme.primaryContainer,
-                              backgroundImage:
-                                  (user.photoUrl != null &&
-                                      user.photoUrl!.startsWith('http'))
-                                  ? NetworkImage(user.photoUrl!)
-                                  : null,
-                              child:
-                                  (user.photoUrl == null ||
-                                      !user.photoUrl!.startsWith('http'))
-                                  ? Text(
-                                      (user.name != null &&
-                                              user.name!.isNotEmpty)
-                                          ? user.name!
-                                                .substring(0, 1)
-                                                .toUpperCase()
-                                          : 'U',
-                                      style: TextStyle(
-                                        color: colorScheme.onPrimaryContainer,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: _currentIndex == 0
+                ? GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onScaleStart: _handleScaleStart,
+                    onScaleUpdate: _handleScaleUpdate,
+                    child: CustomScrollView(
+                      controller: _scrollController,
+                      slivers: [
+                        SliverAppBar(
+                          floating: true,
+                          snap: true,
+                          backgroundColor: isSelecting
+                              ? colorScheme.surfaceContainerHighest
+                              : colorScheme.surface.withOpacity(0.95),
+                          surfaceTintColor: Colors.transparent,
+                          leading: isSelecting
+                              ? IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () {
+                                    ref
+                                        .read(mediaSelectionProvider.notifier)
+                                        .clear();
+                                  },
+                                )
+                              : null,
+                          title: isSelecting
+                              ? Text(
+                                  '${selectedIds.length}',
+                                  style: theme.textTheme.titleLarge,
+                                )
+                              : Text(
+                                  l10n.appTitle,
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(
+                                        color: colorScheme.onSurface,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                    )
-                                  : null,
-                            ),
-                          ),
+                                ),
+                          centerTitle: false,
+                          actions: isSelecting
+                              ? [
+                                  if (selectedIds.length == 1)
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined),
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Edit feature coming soon',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  IconButton(
+                                    icon: const Icon(Icons.share_outlined),
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Share feature coming soon',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline),
+                                    onPressed: () {
+                                      _deleteSelected(selectedIds);
+                                    },
+                                  ),
+                                ]
+                              : [
+                                  IconButton(
+                                    icon: const Icon(Icons.map_outlined),
+                                    onPressed: () => context.push('/map'),
+                                  ),
+                                  if (user != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        right: 16.0,
+                                      ),
+                                      child: GestureDetector(
+                                        onTap: () => context.push('/profile'),
+                                        child: CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor:
+                                              colorScheme.primaryContainer,
+                                          backgroundImage:
+                                              (user.photoUrl != null &&
+                                                  user.photoUrl!.startsWith(
+                                                    'http',
+                                                  ))
+                                              ? NetworkImage(user.photoUrl!)
+                                              : null,
+                                          child:
+                                              (user.photoUrl == null ||
+                                                  !user.photoUrl!.startsWith(
+                                                    'http',
+                                                  ))
+                                              ? Text(
+                                                  (user.name != null &&
+                                                          user.name!.isNotEmpty)
+                                                      ? user.name!
+                                                            .substring(0, 1)
+                                                            .toUpperCase()
+                                                      : 'U',
+                                                  style: TextStyle(
+                                                    color: colorScheme
+                                                        .onPrimaryContainer,
+                                                  ),
+                                                )
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                         ),
-                    ],
-            ),
-            ...mediaListAsync.when(
-              data: (mediaList) {
-                if (mediaList.isEmpty) {
-                  return [
-                    SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.photo_library_outlined,
-                              size: 64,
-                              color: colorScheme.outline,
+                        ...mediaListAsync.when(
+                          data: (mediaList) {
+                            if (mediaList.isEmpty) {
+                              return [
+                                SliverFillRemaining(
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.photo_library_outlined,
+                                          size: 64,
+                                          color: colorScheme.outline,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          l10n.homeEmptyTitle,
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          l10n.homeEmptyDescription,
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ];
+                            }
+
+                            final groupedMedia = _groupMediaByDate(mediaList);
+
+                            return groupedMedia.entries.expand((entry) {
+                              return [
+                                SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      24,
+                                      16,
+                                      8,
+                                    ),
+                                    child: Text(
+                                      _formatDateHeader(entry.key),
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: colorScheme.onSurface,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                                SliverPadding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 2.0,
+                                  ),
+                                  sliver: SliverGrid(
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: gridColumnCount,
+                                          mainAxisSpacing: 2.0,
+                                          crossAxisSpacing: 2.0,
+                                          childAspectRatio: 1.0,
+                                        ),
+                                    delegate: SliverChildBuilderDelegate((
+                                      context,
+                                      index,
+                                    ) {
+                                      final media = entry.value[index];
+                                      final isSelected = selectedIds.contains(
+                                        media.id,
+                                      );
+                                      return PhotoGridItem(
+                                        media: media,
+                                        isSelected: isSelected,
+                                        onTap: () {
+                                          if (isSelecting) {
+                                            ref
+                                                .read(
+                                                  mediaSelectionProvider
+                                                      .notifier,
+                                                )
+                                                .toggle(media.id);
+                                          } else {
+                                            _showFullImage(media: media);
+                                          }
+                                        },
+                                        onMap: () {
+                                          context.push('/map?id=${media.id}');
+                                        },
+                                        onSelect: () {
+                                          ref
+                                              .read(
+                                                mediaSelectionProvider.notifier,
+                                              )
+                                              .select(media.id);
+                                        },
+                                        onDelete: () {
+                                          _deleteSelected({media.id});
+                                        },
+                                        onEdit: () {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Edit feature coming soon',
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    }, childCount: entry.value.length),
+                                  ),
+                                ),
+                              ];
+                            }).toList();
+                          },
+                          loading: () => [
+                            const SliverFillRemaining(
+                              child: Center(child: CircularProgressIndicator()),
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              l10n.homeEmptyTitle,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              l10n.homeEmptyDescription,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
+                          ],
+                          error: (err, stack) => [
+                            SliverFillRemaining(
+                              child: Center(child: Text('Error: $err')),
                             ),
                           ],
                         ),
-                      ),
+                        // Add some bottom padding for the FAB and Floating Nav Bar
+                        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                      ],
                     ),
-                  ];
-                }
-
-                final groupedMedia = _groupMediaByDate(mediaList);
-
-                return groupedMedia.entries.expand((entry) {
-                  return [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                        child: Text(
-                          _formatDateHeader(entry.key),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                      sliver: SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: gridColumnCount,
-                          mainAxisSpacing: 2.0,
-                          crossAxisSpacing: 2.0,
-                          childAspectRatio: 1.0,
-                        ),
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final media = entry.value[index];
-                          final isSelected = selectedIds.contains(media.id);
-                          return PhotoGridItem(
-                            media: media,
-                            isSelected: isSelected,
-                            onTap: () {
-                              if (isSelecting) {
-                                ref
-                                    .read(mediaSelectionProvider.notifier)
-                                    .toggle(media.id);
-                              } else {
-                                _showFullImage(media: media);
-                              }
-                            },
-                            onMap: () {
-                              context.push('/map?id=${media.id}');
-                            },
-                            onSelect: () {
-                              ref
-                                  .read(mediaSelectionProvider.notifier)
-                                  .select(media.id);
-                            },
-                            onDelete: () {
-                              _deleteSelected({media.id});
-                            },
-                            onEdit: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Edit feature coming soon'),
-                                ),
-                              );
-                            },
-                          );
-                        }, childCount: entry.value.length),
-                      ),
-                    ),
-                  ];
-                }).toList();
+                  )
+                : const TrashScreen(),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: CustomBottomNavigation(
+              currentIndex: _currentIndex,
+              onTap: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
               },
-              loading: () => [
-                const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              ],
-              error: (err, stack) => [
-                SliverFillRemaining(child: Center(child: Text('Error: $err'))),
-              ],
             ),
-            // Add some bottom padding for the FAB
-            const SliverToBoxAdapter(child: SizedBox(height: 80)),
-          ],
-        ),
+          ),
+        ],
       ),
-      floatingActionButton: _isProcessingDuplicates || isSelecting
+      floatingActionButton:
+          (_currentIndex != 0 || _isProcessingDuplicates || isSelecting)
           ? null
-          : FloatingActionButton(
-              onPressed: _pickAndUploadImage,
-              child: const Icon(
-                Icons.add_photo_alternate_outlined,
-              ), // 原本的 icon 改放在 child
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
-              elevation: 2,
-              tooltip: l10n.actionUpload, // 建議補上這個，長按按鈕時會顯示文字提示 (Accessibility)
+          : Padding(
+              padding: const EdgeInsets.only(bottom: 80.0),
+              child: FloatingActionButton(
+                onPressed: _pickAndUploadImage, // 原本的 icon 改放在 child
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+                elevation: 2,
+                tooltip: l10n.actionUpload,
+                child: const Icon(
+                  Icons.add_photo_alternate_outlined,
+                ), // 建議補上這個，長按按鈕時會顯示文字提示 (Accessibility)
+              ),
             ),
     );
   }

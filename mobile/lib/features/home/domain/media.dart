@@ -22,6 +22,7 @@ class Media {
   final String blurHash;
   final String dominantColor;
   final DateTime uploadedAt;
+  final DateTime? deletedAt;
 
   // Uploading state
   final bool isUploading;
@@ -51,6 +52,7 @@ class Media {
     required this.blurHash,
     required this.dominantColor,
     required this.uploadedAt,
+    this.deletedAt,
     this.isUploading = false,
     this.isDuplicate = false,
     this.isHighlighted = false,
@@ -79,6 +81,7 @@ class Media {
     String? blurHash,
     String? dominantColor,
     DateTime? uploadedAt,
+    DateTime? deletedAt,
     bool? isUploading,
     bool? isDuplicate,
     bool? isHighlighted,
@@ -106,6 +109,7 @@ class Media {
       blurHash: blurHash ?? this.blurHash,
       dominantColor: dominantColor ?? this.dominantColor,
       uploadedAt: uploadedAt ?? this.uploadedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
       isUploading: isUploading ?? this.isUploading,
       isDuplicate: isDuplicate ?? this.isDuplicate,
       isHighlighted: isHighlighted ?? this.isHighlighted,
@@ -138,6 +142,9 @@ class Media {
       blurHash: json['blur_hash'] as String? ?? '',
       dominantColor: json['dominant_color'] as String? ?? '',
       uploadedAt: DateTime.parse(json['uploaded_at']),
+      deletedAt: json['deleted_at'] != null
+          ? DateTime.parse(json['deleted_at'])
+          : null,
     );
   }
 

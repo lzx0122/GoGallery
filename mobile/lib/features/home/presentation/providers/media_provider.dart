@@ -175,7 +175,9 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
         // (It might be a duplicate in content but new ID)
         final currentList = state.value ?? [];
         if (result != null) {
-          state = AsyncValue.data([result, ...currentList]);
+          // Remove temp item first (if any)
+          final listWithoutTemp = currentList.where((m) => m.id != tempId).toList();
+          state = AsyncValue.data([result, ...listWithoutTemp]);
         }
       }
       return UploadResult(UploadStatus.success);
@@ -275,6 +277,81 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
       // Revert if failed
       state = AsyncValue.data(previousList);
       print("Delete failed: $e");
+      rethrow;
+    }
+  }
+}
+
+// Trash Provider
+final trashListProvider =
+    AsyncNotifierProvider<TrashListNotifier, List<Media>>(() {
+  return TrashListNotifier();
+});
+
+class TrashListNotifier extends AsyncNotifier<List<Media>> {
+  @override
+  Future<List<Media>> build() async {
+    return _fetchTrash();
+  }
+
+  Future<String?> _getToken() async {
+    final authState = ref.read(authProvider);
+    return authState.value?.token;
+  }
+
+  Future<List<Media>> _fetchTrash() async {
+    final token = await _getToken();
+    if (token == null) {
+      return [];
+    }
+
+    try {
+      final repository = ref.read(mediaRepositoryProvider);
+      return await repository.fetchTrashList(token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> fetchTrash() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _fetchTrash());
+  }
+
+  Future<void> restoreMedia(String mediaId) async {
+    final token = await _getToken();
+    if (token == null) return;
+
+    // Optimistic update
+    final currentList = state.value ?? [];
+    final previousList = [...currentList];
+    state = AsyncValue.data(currentList.where((m) => m.id != mediaId).toList());
+
+    try {
+      final repository = ref.read(mediaRepositoryProvider);
+      await repository.restoreMedia(token, mediaId);
+      // Refresh main media list to show restored item
+      ref.refresh(mediaListProvider);
+    } catch (e) {
+      state = AsyncValue.data(previousList);
+      rethrow;
+    }
+  }
+
+  Future<void> deletePermanently(String mediaId) async {
+    final token = await _getToken();
+    if (token == null) return;
+
+    // Optimistic update
+    final currentList = state.value ?? [];
+    final previousList = [...currentList];
+    state = AsyncValue.data(currentList.where((m) => m.id != mediaId).toList());
+
+    try {
+      final repository = ref.read(mediaRepositoryProvider);
+      await repository.deleteMedia(token, mediaId, permanent: true);
+    } catch (e) {
+      state = AsyncValue.data(previousList);
       rethrow;
     }
   }

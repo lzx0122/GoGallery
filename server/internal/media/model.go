@@ -27,4 +27,5 @@ type Media struct {
 	BlurHash         string     `json:"blur_hash"`
 	DominantColor    string     `json:"dominant_color"`
 	UploadedAt       time.Time  `json:"uploaded_at"`
+	DeletedAt        *time.Time `json:"deleted_at,omitempty"`
 }
