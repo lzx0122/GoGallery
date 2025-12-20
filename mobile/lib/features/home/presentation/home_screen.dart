@@ -11,6 +11,7 @@ import '../../auth/presentation/providers/auth_provider.dart';
 import '../domain/media.dart';
 import 'providers/grid_settings_provider.dart';
 import 'providers/media_provider.dart';
+import 'providers/media_selection_provider.dart';
 import 'widgets/photo_grid_item.dart';
 import 'widgets/full_image_viewer.dart';
 import 'widgets/media_thumbnail.dart';
@@ -91,6 +92,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
+    }
+  }
+
+  Future<void> _deleteSelected(Set<String> ids) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.actionDelete),
+        content: Text(l10n.deleteConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.actionDelete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref.read(mediaListProvider.notifier).deleteMedias(ids.toList());
+        ref.read(mediaSelectionProvider.notifier).clear();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error deleting items: $e')));
+        }
+      }
     }
   }
 
@@ -535,6 +570,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final user = ref.watch(authProvider).value;
     final gridColumnCount = ref.watch(gridColumnCountProvider);
     final mediaListAsync = ref.watch(mediaListProvider);
+    final selectedIds = ref.watch(mediaSelectionProvider);
+    final isSelecting = selectedIds.isNotEmpty;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
@@ -552,46 +589,94 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverAppBar(
               floating: true,
               snap: true,
-              backgroundColor: colorScheme.surface.withOpacity(0.95),
+              backgroundColor: isSelecting
+                  ? colorScheme.surfaceContainerHighest
+                  : colorScheme.surface.withOpacity(0.95),
               surfaceTintColor: Colors.transparent,
-              title: Text(
-                l10n.appTitle,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              centerTitle: false,
-              actions: [
-                if (user != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: GestureDetector(
-                      onTap: () => context.push('/profile'),
-                      child: CircleAvatar(
-                        radius: 18,
-                        backgroundColor: colorScheme.primaryContainer,
-                        backgroundImage:
-                            (user.photoUrl != null &&
-                                user.photoUrl!.startsWith('http'))
-                            ? NetworkImage(user.photoUrl!)
-                            : null,
-                        child:
-                            (user.photoUrl == null ||
-                                !user.photoUrl!.startsWith('http'))
-                            ? Text(
-                                (user.name != null && user.name!.isNotEmpty)
-                                    ? user.name!.substring(0, 1).toUpperCase()
-                                    : 'U',
-                                style: TextStyle(
-                                  color: colorScheme.onPrimaryContainer,
-                                ),
-                              )
-                            : null,
+              leading: isSelecting
+                  ? IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        ref.read(mediaSelectionProvider.notifier).clear();
+                      },
+                    )
+                  : null,
+              title: isSelecting
+                  ? Text(
+                      '${selectedIds.length}',
+                      style: theme.textTheme.titleLarge,
+                    )
+                  : Text(
+                      l10n.appTitle,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-              ],
+              centerTitle: false,
+              actions: isSelecting
+                  ? [
+                      if (selectedIds.length == 1)
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Edit feature coming soon'),
+                              ),
+                            );
+                          },
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.share_outlined),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Share feature coming soon'),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () {
+                          _deleteSelected(selectedIds);
+                        },
+                      ),
+                    ]
+                  : [
+                      if (user != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 16.0),
+                          child: GestureDetector(
+                            onTap: () => context.push('/profile'),
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: colorScheme.primaryContainer,
+                              backgroundImage:
+                                  (user.photoUrl != null &&
+                                      user.photoUrl!.startsWith('http'))
+                                  ? NetworkImage(user.photoUrl!)
+                                  : null,
+                              child:
+                                  (user.photoUrl == null ||
+                                      !user.photoUrl!.startsWith('http'))
+                                  ? Text(
+                                      (user.name != null &&
+                                              user.name!.isNotEmpty)
+                                          ? user.name!
+                                                .substring(0, 1)
+                                                .toUpperCase()
+                                          : 'U',
+                                      style: TextStyle(
+                                        color: colorScheme.onPrimaryContainer,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                        ),
+                    ],
             ),
             mediaListAsync.when(
               data: (mediaList) {
@@ -636,15 +721,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final media = mediaList[index];
+                      final isSelected = selectedIds.contains(media.id);
                       return PhotoGridItem(
                         media: media,
+                        isSelected: isSelected,
                         onTap: () {
-                          _showFullImage(media: media);
+                          if (isSelecting) {
+                            ref
+                                .read(mediaSelectionProvider.notifier)
+                                .toggle(media.id);
+                          } else {
+                            _showFullImage(media: media);
+                          }
+                        },
+                        onSelect: () {
+                          ref
+                              .read(mediaSelectionProvider.notifier)
+                              .select(media.id);
                         },
                         onDelete: () {
-                          ref
-                              .read(mediaListProvider.notifier)
-                              .deleteMedia(media.id);
+                          _deleteSelected({media.id});
                         },
                         onEdit: () {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -670,7 +766,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: _isProcessingDuplicates
+      floatingActionButton: _isProcessingDuplicates || isSelecting
           ? null
           : FloatingActionButton(
               onPressed: _pickAndUploadImage,

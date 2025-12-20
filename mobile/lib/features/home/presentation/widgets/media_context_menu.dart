@@ -9,6 +9,7 @@ class MediaContextMenu extends StatefulWidget {
   final Rect originalRect;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
+  final VoidCallback onSelect;
 
   const MediaContextMenu({
     super.key,
@@ -16,6 +17,7 @@ class MediaContextMenu extends StatefulWidget {
     required this.originalRect,
     required this.onDelete,
     required this.onEdit,
+    required this.onSelect,
   });
 
   static Future<void> show(
@@ -23,6 +25,7 @@ class MediaContextMenu extends StatefulWidget {
     required Media media,
     required VoidCallback onDelete,
     required VoidCallback onEdit,
+    required VoidCallback onSelect,
   }) async {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final position = renderBox.localToGlobal(Offset.zero);
@@ -42,6 +45,7 @@ class MediaContextMenu extends StatefulWidget {
             originalRect: rect,
             onDelete: onDelete,
             onEdit: onEdit,
+            onSelect: onSelect,
           );
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -163,6 +167,16 @@ class _MediaContextMenuState extends State<MediaContextMenu>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.check_circle_outline,
+                    label: 'Select',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      widget.onSelect();
+                    },
+                  ),
+                  Divider(height: 1, color: colorScheme.outlineVariant),
                   _buildMenuItem(
                     context,
                     icon: Icons.edit_outlined,

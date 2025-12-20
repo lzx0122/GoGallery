@@ -217,6 +217,36 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
     }
   }
 
+  Future<void> deleteMedias(List<String> mediaIds) async {
+    print("Deleting medias: $mediaIds");
+
+    // Optimistic update: Remove from list
+    final currentList = state.value ?? [];
+    final previousList = [...currentList];
+    state = AsyncValue.data(
+      currentList.where((m) => !mediaIds.contains(m.id)).toList(),
+    );
+
+    final token = await _getToken();
+    if (token == null) {
+      state = AsyncValue.data(previousList);
+      return;
+    }
+
+    final repository = ref.read(mediaRepositoryProvider);
+
+    try {
+      await Future.wait(
+        mediaIds.map((id) => repository.deleteMedia(token, id)),
+      );
+    } catch (e) {
+      // Revert if failed
+      state = AsyncValue.data(previousList);
+      print("Delete failed: $e");
+      rethrow;
+    }
+  }
+
   Future<void> deleteMedia(String mediaId) async {
     print("Deleting media: $mediaId");
 

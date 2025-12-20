@@ -6,17 +6,23 @@ import 'media_context_menu.dart';
 class PhotoGridItem extends StatelessWidget {
   final Media media;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
+  final VoidCallback? onSelect;
   final VoidCallback? onForceUpload;
+  final bool isSelected;
 
   const PhotoGridItem({
     super.key,
     required this.media,
     this.onTap,
+    this.onLongPress,
     this.onDelete,
     this.onEdit,
+    this.onSelect,
     this.onForceUpload,
+    this.isSelected = false,
   });
 
   @override
@@ -27,14 +33,18 @@ class PhotoGridItem extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
-      transform: media.isHighlighted
-          ? (Matrix4.identity()
-              ..scale(1.05)
-              ..translate(0.0, -2.0))
+      transformAlignment: Alignment.center,
+      transform: media.isHighlighted || isSelected
+          ? (Matrix4.identity()..scale(0.85))
           : Matrix4.identity(),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(media.isHighlighted ? 12 : 0),
+        borderRadius: BorderRadius.circular(
+          media.isHighlighted || isSelected ? 12 : 0,
+        ),
+        border: isSelected
+            ? Border.all(color: colorScheme.primary, width: 3)
+            : null,
         boxShadow: media.isHighlighted
             ? [
                 BoxShadow(
@@ -65,7 +75,9 @@ class PhotoGridItem extends StatelessWidget {
       ),
       clipBehavior: Clip.none,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(media.isHighlighted ? 12 : 0),
+        borderRadius: BorderRadius.circular(
+          media.isHighlighted || isSelected ? 9 : 0,
+        ),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -76,20 +88,48 @@ class PhotoGridItem extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: onTap,
-                onLongPress: () {
-                  if (onDelete != null || onEdit != null) {
-                    MediaContextMenu.show(
-                      context,
-                      media: media,
-                      onDelete: onDelete ?? () {},
-                      onEdit: onEdit ?? () {},
-                    );
-                  }
-                },
+                onLongPress:
+                    onLongPress ??
+                    () {
+                      if (onDelete != null || onEdit != null) {
+                        MediaContextMenu.show(
+                          context,
+                          media: media,
+                          onDelete: onDelete ?? () {},
+                          onEdit: onEdit ?? () {},
+                          onSelect: onSelect ?? () {},
+                        );
+                      }
+                    },
                 splashColor: Colors.black.withOpacity(0.1),
                 highlightColor: Colors.black.withOpacity(0.05),
               ),
             ),
+
+            // Selection Indicator
+            if (isSelected)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.check,
+                    color: theme.colorScheme.onPrimary,
+                    size: 16,
+                  ),
+                ),
+              ),
 
             // Highlight Overlay (Duplicate)
             if (media.isHighlighted)

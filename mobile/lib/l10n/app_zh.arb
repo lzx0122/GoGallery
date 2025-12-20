@@ -14,6 +14,7 @@
   "actionSave": "儲存",
   "actionEdit": "編輯",
   "actionRetry": "重試",
+  "deleteConfirm": "確定要刪除這些項目嗎？",
 
   "authLogin": "登入",
   "authLogout": "登出",

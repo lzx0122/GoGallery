@@ -18,6 +18,7 @@
   "actionSave": "Save",
   "actionEdit": "Edit",
   "actionRetry": "Retry",
+  "deleteConfirm": "Are you sure you want to delete these items?",
 
   "authLogin": "Log In",
   "authLogout": "Log Out",
