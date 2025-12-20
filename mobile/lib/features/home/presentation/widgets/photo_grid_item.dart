@@ -50,7 +50,7 @@ class PhotoGridItem extends StatelessWidget {
         boxShadow: media.isHighlighted
             ? [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: colorScheme.shadow.withOpacity(0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                   spreadRadius: 1,
@@ -62,13 +62,13 @@ class PhotoGridItem extends StatelessWidget {
                 ),
               ]
             : [
-                BoxShadow(
+                const BoxShadow(
                   color: Colors.transparent,
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                   spreadRadius: 1,
                 ),
-                BoxShadow(
+                const BoxShadow(
                   color: Colors.transparent,
                   blurRadius: 8,
                   spreadRadius: -2,
@@ -104,8 +104,8 @@ class PhotoGridItem extends StatelessWidget {
                         );
                       }
                     },
-                splashColor: Colors.black.withOpacity(0.1),
-                highlightColor: Colors.black.withOpacity(0.05),
+                splashColor: colorScheme.onSurface.withOpacity(0.1),
+                highlightColor: colorScheme.onSurface.withOpacity(0.05),
               ),
             ),
 
@@ -121,7 +121,7 @@ class PhotoGridItem extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: colorScheme.shadow.withOpacity(0.2),
                         blurRadius: 4,
                       ),
                     ],
@@ -139,7 +139,9 @@ class PhotoGridItem extends StatelessWidget {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.1), // Lighter overlay
+                    color: colorScheme.scrim.withOpacity(
+                      0.1,
+                    ), // Lighter overlay
                     border: Border.all(
                       color: theme.colorScheme.primary.withOpacity(0.5),
                       width: 2,
@@ -156,7 +158,7 @@ class PhotoGridItem extends StatelessWidget {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: colorScheme.shadow.withOpacity(0.2),
                               blurRadius: 4,
                             ),
                           ],
@@ -179,8 +181,8 @@ class PhotoGridItem extends StatelessWidget {
                 right: 8,
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.black54,
+                  decoration: BoxDecoration(
+                    color: colorScheme.scrim.withOpacity(0.54),
                     shape: BoxShape.circle,
                   ),
                   child: SizedBox(

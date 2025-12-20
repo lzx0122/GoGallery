@@ -18,6 +18,9 @@
   "actionRetry": "重試",
   "deleteConfirm": "確定要刪除這些項目嗎？",
 
+  "mapTitle": "媒體地圖",
+  "mapNoData": "找不到含有位置資訊的媒體",
+
   "authLogin": "登入",
   "authLogout": "登出",
   "authSignInGoogle": "使用 Google 登入",
@@ -48,7 +51,8 @@
   "settingsLanguage": "語言",
   "settingsDarkMode": "深色模式",
   "settingsLightMode": "淺色模式",
-  "settingsSystemMode": "系統預設",
+  "settingsSystemMode": "跟隨系統外觀",
+  "settingsSystemModeDescription": "自動切換深色或淺色模式",
   "settingsAbout": "關於",
 
   "errorGeneric": "發生錯誤",

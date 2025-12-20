@@ -5,6 +5,7 @@ import 'package:mobile/l10n/generated/app_localizations.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/settings/presentation/providers/locale_provider.dart';
+import 'features/settings/presentation/providers/theme_provider.dart';
 
 void main() {
   runApp(const ProviderScope(child: GoGalleryApp()));
@@ -17,13 +18,14 @@ class GoGalleryApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
+    final themeMode = ref.watch(themeProvider);
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       locale: locale,
       routerConfig: router,
       localizationsDelegates: const [

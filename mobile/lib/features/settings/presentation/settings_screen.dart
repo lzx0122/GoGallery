@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/l10n/generated/app_localizations.dart';
 import 'providers/locale_provider.dart';
+import 'providers/theme_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -10,11 +11,48 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final currentLocale = ref.watch(localeProvider);
+    final currentTheme = ref.watch(themeProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.navSettings)),
       body: ListView(
         children: [
+          ListTile(
+            leading: const Icon(Icons.brightness_auto),
+            title: Text(l10n.settingsSystemMode),
+            subtitle: Text(l10n.settingsSystemModeDescription),
+            trailing: Switch.adaptive(
+              value: currentTheme == ThemeMode.system,
+              onChanged: (bool value) {
+                if (value) {
+                  ref.read(themeProvider.notifier).setSystem();
+                } else {
+                  // 當關閉系統模式時，保持當前的視覺亮度
+                  final brightness = MediaQuery.of(context).platformBrightness;
+                  if (brightness == Brightness.dark) {
+                    ref.read(themeProvider.notifier).setDark();
+                  } else {
+                    ref.read(themeProvider.notifier).setLight();
+                  }
+                }
+              },
+            ),
+          ),
+          if (currentTheme != ThemeMode.system)
+            ListTile(
+              leading: const Icon(Icons.dark_mode),
+              title: Text(l10n.settingsDarkMode),
+              trailing: Switch.adaptive(
+                value: currentTheme == ThemeMode.dark,
+                onChanged: (bool value) {
+                  if (value) {
+                    ref.read(themeProvider.notifier).setDark();
+                  } else {
+                    ref.read(themeProvider.notifier).setLight();
+                  }
+                },
+              ),
+            ),
           ListTile(
             leading: const Icon(Icons.language),
             title: Text(l10n.settingsLanguage),

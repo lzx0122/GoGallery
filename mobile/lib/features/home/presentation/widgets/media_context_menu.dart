@@ -42,7 +42,7 @@ class MediaContextMenu extends StatefulWidget {
       PageRouteBuilder(
         opaque: false,
         barrierDismissible: true,
-        barrierColor: Colors.black54,
+        barrierColor: Theme.of(context).colorScheme.scrim.withOpacity(0.54),
         pageBuilder: (context, animation, secondaryAnimation) {
           return MediaContextMenu(
             media: media,
@@ -117,7 +117,7 @@ class _MediaContextMenuState extends State<MediaContextMenu>
             onTap: () => Navigator.of(context).pop(),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(color: Colors.black.withOpacity(0.2)),
+              child: Container(color: colorScheme.scrim.withOpacity(0.2)),
             ),
           ),
         ),
@@ -137,7 +137,7 @@ class _MediaContextMenuState extends State<MediaContextMenu>
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: colorScheme.shadow.withOpacity(0.3),
                         blurRadius: 20,
                         spreadRadius: 5,
                       ),
@@ -164,7 +164,7 @@ class _MediaContextMenuState extends State<MediaContextMenu>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: colorScheme.shadow.withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

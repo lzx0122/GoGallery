@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mobile/l10n/generated/app_localizations.dart';
 import '../../home/presentation/providers/media_provider.dart';
 import '../../home/domain/media.dart';
 
@@ -14,9 +15,11 @@ class MapScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mediaListAsync = ref.watch(mediaListProvider);
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Photo Map')),
+      appBar: AppBar(title: Text(l10n.mapTitle)),
       body: mediaListAsync.when(
         data: (mediaList) {
           final mediaWithLocation = mediaList
@@ -24,9 +27,7 @@ class MapScreen extends ConsumerWidget {
               .toList();
 
           if (mediaWithLocation.isEmpty) {
-            return const Center(
-              child: Text('No photos with location data found.'),
-            );
+            return Center(child: Text(l10n.mapNoData));
           }
 
           // Calculate center
@@ -87,7 +88,7 @@ class MapScreen extends ConsumerWidget {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: theme.colorScheme.shadow.withOpacity(0.2),
                               blurRadius: 4,
                             ),
                           ],
@@ -96,8 +97,9 @@ class MapScreen extends ConsumerWidget {
                           child: CachedNetworkImage(
                             imageUrl: media.url,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) =>
-                                Container(color: Colors.grey[300]),
+                            placeholder: (context, url) => Container(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                            ),
                             errorWidget: (context, url, error) =>
                                 const Icon(Icons.error),
                           ),

@@ -22,6 +22,9 @@
   "actionRetry": "Retry",
   "deleteConfirm": "Are you sure you want to delete these items?",
 
+  "mapTitle": "Media Map",
+  "mapNoData": "No media with location data found",
+
   "authLogin": "Log In",
   "authLogout": "Log Out",
   "authSignInGoogle": "Sign in with Google",
@@ -59,7 +62,8 @@
   "settingsLanguage": "Language",
   "settingsDarkMode": "Dark Mode",
   "settingsLightMode": "Light Mode",
-  "settingsSystemMode": "System Default",
+  "settingsSystemMode": "Follow System",
+  "settingsSystemModeDescription": "Automatically match system appearance",
   "settingsAbout": "About",
 
   "errorGeneric": "Something went wrong",

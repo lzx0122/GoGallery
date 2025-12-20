@@ -77,10 +77,10 @@ class ProfileScreen extends ConsumerWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
+            leading: Icon(Icons.logout, color: colorScheme.error),
             title: Text(
               AppLocalizations.of(context)!.authLogout,
-              style: const TextStyle(color: Colors.red),
+              style: TextStyle(color: colorScheme.error),
             ),
             onTap: () async {
               await ref.read(authProvider.notifier).logout();

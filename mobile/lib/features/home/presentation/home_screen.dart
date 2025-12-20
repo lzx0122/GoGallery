@@ -299,7 +299,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             color: theme.colorScheme.surface,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: theme.colorScheme.shadow.withOpacity(0.1),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -508,7 +508,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onTap: onTap,
                 child: AspectRatio(
                   aspectRatio: 1,
-                  child: Container(color: Colors.grey[200], child: image),
+                  child: Container(
+                    color: colorScheme.surfaceContainerHighest,
+                    child: image,
+                  ),
                 ),
               ),
               Positioned(
@@ -523,7 +526,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   decoration: BoxDecoration(
                     color: isNew
                         ? colorScheme.primary
-                        : Colors.black.withOpacity(0.6),
+                        : colorScheme.scrim.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -541,7 +544,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
+                    color: colorScheme.scrim.withOpacity(0.4),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -601,13 +604,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
+    final l10n = AppLocalizations.of(context)!;
 
     if (date == today) {
-      return AppLocalizations.of(context)!.dateToday;
+      return l10n.dateToday;
     } else if (date == yesterday) {
-      return AppLocalizations.of(context)!.dateYesterday;
+      return l10n.dateYesterday;
     } else {
-      return DateFormat.yMMMd().format(date);
+      // 使用系統目前的 Locale 進行日期格式化
+      final locale = Localizations.localeOf(context).toString();
+      return DateFormat.yMMMd(locale).format(date);
     }
   }
 
