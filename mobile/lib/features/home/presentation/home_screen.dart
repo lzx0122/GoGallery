@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,9 +79,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final itemWidth = (screenWidth - (columnCount - 1) * 2.0) / columnCount;
 
     // Header height estimation:
-    // Padding: top 24, bottom 8. Text: titleMedium (approx 24). Total ~ 56.
-    // Let's assume 60.0 for header.
-    const headerHeight = 60.0;
+    // DateHeaderDelegate min/max extent is 48.0
+    const headerHeight = 48.0;
 
     bool found = false;
 
@@ -603,23 +603,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return sortedGroups;
   }
 
-  String _formatDateHeader(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final l10n = AppLocalizations.of(context)!;
-
-    if (date == today) {
-      return l10n.dateToday;
-    } else if (date == yesterday) {
-      return l10n.dateYesterday;
-    } else {
-      // 使用系統目前的 Locale 進行日期格式化
-      final locale = Localizations.localeOf(context).toString();
-      return DateFormat.yMMMd(locale).format(date);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).value;
@@ -805,22 +788,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             return groupedMedia.entries.expand((entry) {
                               return [
                                 SliverToBoxAdapter(
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      16,
-                                      24,
-                                      16,
-                                      8,
-                                    ),
-                                    child: Text(
-                                      _formatDateHeader(entry.key),
-                                      style: theme.textTheme.titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: colorScheme.onSurface,
-                                          ),
-                                    ),
-                                  ),
+                                  child: _DateHeader(date: entry.key),
                                 ),
                                 SliverPadding(
                                   padding: const EdgeInsets.symmetric(
@@ -938,5 +906,89 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
     );
+  }
+}
+
+class _DateHeader extends StatelessWidget {
+  final DateTime date;
+
+  const _DateHeader({required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          height: 48,
+          color: colorScheme.surface.withOpacity(0.8),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Text(
+                _formatDateTitle(context, date, l10n),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (!_isToday(date) && !_isYesterday(date))
+                Text(
+                  DateFormat.y(
+                    Localizations.localeOf(context).toString(),
+                  ).format(date),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatDateTitle(
+    BuildContext context,
+    DateTime date,
+    AppLocalizations l10n,
+  ) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day) {
+      return l10n.dateToday;
+    } else if (date.year == yesterday.year &&
+        date.month == yesterday.month &&
+        date.day == yesterday.day) {
+      return l10n.dateYesterday;
+    } else {
+      final locale = Localizations.localeOf(context).toString();
+      return DateFormat.MMMd(locale).format(date);
+    }
+  }
+
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+  }
+
+  bool _isYesterday(DateTime date) {
+    final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
+    return date.year == yesterday.year &&
+        date.month == yesterday.month &&
+        date.day == yesterday.day;
   }
 }

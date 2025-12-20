@@ -119,17 +119,19 @@ class PhotoGridItem extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary,
                     shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
                     boxShadow: [
                       BoxShadow(
-                        color: colorScheme.shadow.withOpacity(0.2),
+                        color: Colors.black.withOpacity(0.2),
                         blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   child: Icon(
                     Icons.check,
                     color: theme.colorScheme.onPrimary,
-                    size: 16,
+                    size: 14,
                   ),
                 ),
               ),
@@ -139,20 +141,21 @@ class PhotoGridItem extends StatelessWidget {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: colorScheme.scrim.withOpacity(
-                      0.1,
-                    ), // Lighter overlay
+                    color: colorScheme.surface.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(
+                      media.isHighlighted || isSelected ? 9 : 0,
+                    ),
                     border: Border.all(
-                      color: theme.colorScheme.primary.withOpacity(0.5),
+                      color: theme.colorScheme.primary,
                       width: 2,
                     ),
                   ),
                   child: Align(
                     alignment: Alignment.topRight,
                     child: Padding(
-                      padding: const EdgeInsets.all(6.0),
+                      padding: const EdgeInsets.all(8.0),
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primary,
                           shape: BoxShape.circle,
@@ -166,7 +169,7 @@ class PhotoGridItem extends StatelessWidget {
                         child: Icon(
                           Icons.copy_all_rounded,
                           color: theme.colorScheme.onPrimary,
-                          size: 14,
+                          size: 16,
                         ),
                       ),
                     ),
