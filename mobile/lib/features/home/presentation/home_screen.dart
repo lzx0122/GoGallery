@@ -67,26 +67,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final mediaList = ref.read(mediaListProvider).value;
     if (mediaList == null) return;
 
-    final index = mediaList.indexWhere((m) => m.id == id);
-    if (index == -1) return;
+    final groupedMedia = _groupMediaByDate(mediaList);
 
+    double offset = 0;
     final columnCount = ref.read(gridColumnCountProvider);
     final screenWidth = MediaQuery.of(context).size.width;
-    // Assuming 2.0 spacing
     final itemWidth = (screenWidth - (columnCount - 1) * 2.0) / columnCount;
-    final row = index ~/ columnCount;
 
-    // Calculate offset: row * itemHeight + spacing
-    // itemHeight = itemWidth (aspect ratio 1.0)
-    final offset = row * (itemWidth + 2.0);
+    // Header height estimation:
+    // Padding: top 24, bottom 8. Text: titleMedium (approx 24). Total ~ 56.
+    // Let's assume 60.0 for header.
+    const headerHeight = 60.0;
 
-    // Add some padding to show context (e.g. center it or show a bit above)
-    // Let's try to center it in the viewport if possible, or at least bring it to top
-    // Viewport height is roughly screenHeight - kToolbarHeight - statusBarHeight
-    // But simple animateTo is usually enough.
+    bool found = false;
 
-    // Ensure we don't scroll past bounds (ScrollController handles this mostly)
-    if (_scrollController.hasClients) {
+    for (final entry in groupedMedia.entries) {
+      final groupItems = entry.value;
+      final indexInGroup = groupItems.indexWhere((m) => m.id == id);
+
+      offset += headerHeight; // Add header height
+
+      if (indexInGroup != -1) {
+        final row = indexInGroup ~/ columnCount;
+        offset += row * (itemWidth + 2.0);
+        found = true;
+        break;
+      } else {
+        // Add height of this group's grid
+        final rows = (groupItems.length / columnCount).ceil();
+        offset += rows * (itemWidth + 2.0);
+      }
+    }
+
+    if (found && _scrollController.hasClients) {
       await _scrollController.animateTo(
         offset,
         duration: const Duration(milliseconds: 500),
@@ -565,6 +578,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Map<DateTime, List<Media>> _groupMediaByDate(List<Media> mediaList) {
+    final groups = <DateTime, List<Media>>{};
+    for (final media in mediaList) {
+      final date = media.takenAt ?? media.uploadedAt;
+      final key = DateTime(date.year, date.month, date.day);
+      if (!groups.containsKey(key)) {
+        groups[key] = [];
+      }
+      groups[key]!.add(media);
+    }
+    // Sort keys descending
+    final sortedKeys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
+    final sortedGroups = <DateTime, List<Media>>{};
+    for (final key in sortedKeys) {
+      sortedGroups[key] = groups[key]!;
+    }
+    return sortedGroups;
+  }
+
+  String _formatDateHeader(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (date == today) {
+      return AppLocalizations.of(context)!.dateToday;
+    } else if (date == yesterday) {
+      return AppLocalizations.of(context)!.dateYesterday;
+    } else {
+      return DateFormat.yMMMd().format(date);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).value;
@@ -678,88 +724,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                     ],
             ),
-            mediaListAsync.when(
+            ...mediaListAsync.when(
               data: (mediaList) {
                 if (mediaList.isEmpty) {
-                  return SliverFillRemaining(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.photo_library_outlined,
-                            size: 64,
-                            color: colorScheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.homeEmptyTitle,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                  return [
+                    SliverFillRemaining(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.photo_library_outlined,
+                              size: 64,
+                              color: colorScheme.outline,
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.homeEmptyDescription,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                            const SizedBox(height: 16),
+                            Text(
+                              l10n.homeEmptyTitle,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.homeEmptyDescription,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  );
+                  ];
                 }
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: gridColumnCount,
-                      mainAxisSpacing: 2.0,
-                      crossAxisSpacing: 2.0,
-                      childAspectRatio: 1.0,
+
+                final groupedMedia = _groupMediaByDate(mediaList);
+
+                return groupedMedia.entries.expand((entry) {
+                  return [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                        child: Text(
+                          _formatDateHeader(entry.key),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
                     ),
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final media = mediaList[index];
-                      final isSelected = selectedIds.contains(media.id);
-                      return PhotoGridItem(
-                        media: media,
-                        isSelected: isSelected,
-                        onTap: () {
-                          if (isSelecting) {
-                            ref
-                                .read(mediaSelectionProvider.notifier)
-                                .toggle(media.id);
-                          } else {
-                            _showFullImage(media: media);
-                          }
-                        },
-                        onSelect: () {
-                          ref
-                              .read(mediaSelectionProvider.notifier)
-                              .select(media.id);
-                        },
-                        onDelete: () {
-                          _deleteSelected({media.id});
-                        },
-                        onEdit: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Edit feature coming soon'),
-                            ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                      sliver: SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: gridColumnCount,
+                          mainAxisSpacing: 2.0,
+                          crossAxisSpacing: 2.0,
+                          childAspectRatio: 1.0,
+                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final media = entry.value[index];
+                          final isSelected = selectedIds.contains(media.id);
+                          return PhotoGridItem(
+                            media: media,
+                            isSelected: isSelected,
+                            onTap: () {
+                              if (isSelecting) {
+                                ref
+                                    .read(mediaSelectionProvider.notifier)
+                                    .toggle(media.id);
+                              } else {
+                                _showFullImage(media: media);
+                              }
+                            },
+                            onSelect: () {
+                              ref
+                                  .read(mediaSelectionProvider.notifier)
+                                  .select(media.id);
+                            },
+                            onDelete: () {
+                              _deleteSelected({media.id});
+                            },
+                            onEdit: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Edit feature coming soon'),
+                                ),
+                              );
+                            },
                           );
-                        },
-                      );
-                    }, childCount: mediaList.length),
-                  ),
-                );
+                        }, childCount: entry.value.length),
+                      ),
+                    ),
+                  ];
+                }).toList();
               },
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (err, stack) => SliverFillRemaining(
-                child: Center(child: Text('Error: $err')),
-              ),
+              loading: () => [
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ],
+              error: (err, stack) => [
+                SliverFillRemaining(child: Center(child: Text('Error: $err'))),
+              ],
             ),
             // Add some bottom padding for the FAB
             const SliverToBoxAdapter(child: SizedBox(height: 80)),

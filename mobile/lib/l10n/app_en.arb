@@ -34,6 +34,8 @@
 
   "homeEmptyTitle": "No photos yet",
   "homeEmptyDescription": "Tap the + button to upload",
+  "dateToday": "Today",
+  "dateYesterday": "Yesterday",
   "uploadDuplicate": "Duplicate photo detected",
   "duplicateExisting": "Existing",
   "duplicateNew": "New Upload",

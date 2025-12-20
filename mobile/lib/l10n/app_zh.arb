@@ -30,6 +30,8 @@
 
   "homeEmptyTitle": "尚無相片",
   "homeEmptyDescription": "點擊 + 按鈕開始上傳",
+  "dateToday": "今天",
+  "dateYesterday": "昨天",
   "uploadDuplicate": "偵測到重複相片",
   "duplicateExisting": "現有",
   "duplicateNew": "新上傳",
