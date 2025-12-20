@@ -34,6 +34,21 @@
   "homeEmptyTitle": "No photos yet",
   "homeEmptyDescription": "Tap the + button to upload",
   "uploadDuplicate": "Duplicate photo detected",
+  "duplicateExisting": "Existing",
+  "duplicateNew": "New Upload",
+  "duplicateSkip": "Skip",
+  "duplicateKeep": "Keep",
+  "duplicateCancelAll": "Cancel All",
+  "duplicateUploadAll": "Upload All",
+  "duplicateSkipRemaining": "Skip remaining {count} photos",
+  "@duplicateSkipRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "duplicateForceUploadAll": "Force upload all (Not recommended)",
 
   "settingsTheme": "Theme",
   "settingsLanguage": "Language",

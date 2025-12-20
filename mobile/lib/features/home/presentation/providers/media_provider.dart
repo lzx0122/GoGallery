@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/media_repository.dart';
@@ -49,11 +50,15 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
   }
 
   Future<void> clearHighlight(String id) async {
+    await clearHighlights([id]);
+  }
+
+  Future<void> clearHighlights(List<String> ids) async {
     final currentList = state.value;
     if (currentList != null) {
       state = AsyncValue.data(
         currentList.map((m) {
-          if (m.id == id) {
+          if (ids.contains(m.id)) {
             return m.copyWith(isHighlighted: false);
           }
           return m;
@@ -62,8 +67,27 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
     }
   }
 
-  Future<UploadResult> uploadMedia(File file, {bool force = false}) async {
-    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+  Future<void> setHighlight(String id) async {
+    final currentList = state.value;
+    if (currentList != null) {
+      state = AsyncValue.data(
+        currentList.map((m) {
+          if (m.id == id) {
+            return m.copyWith(isHighlighted: true);
+          }
+          return m;
+        }).toList(),
+      );
+    }
+  }
+
+  Future<UploadResult> uploadMedia(
+    File file, {
+    bool force = false,
+    bool highlightDuplicate = true,
+  }) async {
+    final tempId =
+        'temp_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(10000)}';
 
     // Only add optimistic item if NOT forcing (first attempt)
     // If forcing, we assume we are updating/replacing or just adding a duplicate,
@@ -164,7 +188,9 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
         final newList = currentList
             .where((m) => m.id != tempId) // Remove temp
             .map((m) {
-              if (e.existingId != null && m.id == e.existingId) {
+              if (highlightDuplicate &&
+                  e.existingId != null &&
+                  m.id == e.existingId) {
                 print("Highlighting media: ${m.id}");
                 return m.copyWith(isHighlighted: true);
               }

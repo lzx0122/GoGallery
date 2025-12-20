@@ -1,14 +1,21 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile/l10n/generated/app_localizations.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
+import '../domain/media.dart';
 import 'providers/grid_settings_provider.dart';
 import 'providers/media_provider.dart';
 import 'widgets/photo_grid_item.dart';
+import 'widgets/full_image_viewer.dart';
+import 'widgets/media_thumbnail.dart';
+
+enum _DuplicateAction { cancel, upload, uploadAll, cancelAll }
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -18,10 +25,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   double _baseScale = 1.0;
   int _baseColumnCount = 3;
   final ImagePicker _picker = ImagePicker();
   final ScrollController _scrollController = ScrollController();
+  bool _isProcessingDuplicates = false;
 
   @override
   void dispose() {
@@ -43,6 +52,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       HapticFeedback.selectionClick();
       ref.read(gridColumnCountProvider.notifier).set(newCount);
     }
+  }
+
+  void _showFullImage({Media? media, File? file}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FullImageViewer(media: media, file: file),
+      ),
+    );
   }
 
   Future<void> _scrollToItem(String id) async {
@@ -79,70 +96,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _pickAndUploadImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-      if (image != null) {
-        final file = File(image.path);
-        final result = await ref
-            .read(mediaListProvider.notifier)
-            .uploadMedia(file);
+      final List<XFile> images = await _picker.pickMultiImage();
+      if (images.isNotEmpty) {
+        final results = await Future.wait(
+          images.map((image) async {
+            final file = File(image.path);
+            return await ref
+                .read(mediaListProvider.notifier)
+                .uploadMedia(file, highlightDuplicate: false);
+          }),
+        );
 
-        if (result.status == UploadStatus.duplicate && mounted) {
-          if (result.existingId != null) {
-            await _scrollToItem(result.existingId!);
+        final List<({File file, String existingId})> duplicates = [];
+        final List<String> duplicateIds = [];
+
+        for (int i = 0; i < results.length; i++) {
+          if (results[i].status == UploadStatus.duplicate &&
+              results[i].existingId != null) {
+            duplicates.add((
+              file: File(images[i].path),
+              existingId: results[i].existingId!,
+            ));
+            duplicateIds.add(results[i].existingId!);
           }
+        }
 
-          // Show SnackBar
-          ScaffoldMessenger.of(context)
-              .showSnackBar(
-                SnackBar(
-                  behavior: SnackBarBehavior.floating,
-                  margin: const EdgeInsets.all(16),
-                  duration: const Duration(seconds: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  content: Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: Colors.amber),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.uploadDuplicate,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        },
-                        child: Text(
-                          AppLocalizations.of(context)!.actionCancel,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          ref
-                              .read(mediaListProvider.notifier)
-                              .uploadMedia(file, force: true);
-                        },
-                        child: Text(
-                          AppLocalizations.of(context)!.actionUpload,
-                          style: const TextStyle(color: Colors.amber),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-              .closed
-              .then((_) {
-                if (result.existingId != null) {
-                  ref
-                      .read(mediaListProvider.notifier)
-                      .clearHighlight(result.existingId!);
-                }
-              });
+        if (mounted && duplicates.isNotEmpty) {
+          // Clear all initial highlights first (though highlightDuplicate: false should prevent them)
+          await ref
+              .read(mediaListProvider.notifier)
+              .clearHighlights(duplicateIds);
+          await _processDuplicateQueue(duplicates);
         }
       }
     } catch (e) {
@@ -152,6 +136,398 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ).showSnackBar(SnackBar(content: Text('Error uploading: $e')));
       }
     }
+  }
+
+  Future<void> _processDuplicateQueue(
+    List<({File file, String existingId})> queue,
+  ) async {
+    setState(() {
+      _isProcessingDuplicates = true;
+    });
+
+    _DuplicateAction? autoAction;
+
+    for (int i = 0; i < queue.length; i++) {
+      if (!mounted) return;
+      final item = queue[i];
+
+      if (autoAction == _DuplicateAction.uploadAll) {
+        ref
+            .read(mediaListProvider.notifier)
+            .uploadMedia(item.file, force: true);
+        continue;
+      }
+
+      try {
+        // Highlight current item
+        await ref
+            .read(mediaListProvider.notifier)
+            .setHighlight(item.existingId);
+        await _scrollToItem(item.existingId);
+
+        // Find existing media
+        final mediaList = ref.read(mediaListProvider).value;
+        Media? existingMedia;
+        if (mediaList != null) {
+          try {
+            existingMedia = mediaList.firstWhere(
+              (m) => m.id == item.existingId,
+            );
+          } catch (_) {}
+        }
+
+        final decision = await _showDuplicateBottomSheet(
+          item,
+          i + 1,
+          queue.length,
+          existingMedia,
+        );
+
+        if (mounted) {
+          // Clear highlight regardless of decision
+          ref.read(mediaListProvider.notifier).clearHighlight(item.existingId);
+
+          if (decision == _DuplicateAction.upload) {
+            ref
+                .read(mediaListProvider.notifier)
+                .uploadMedia(item.file, force: true);
+          } else if (decision == _DuplicateAction.uploadAll) {
+            autoAction = _DuplicateAction.uploadAll;
+            ref
+                .read(mediaListProvider.notifier)
+                .uploadMedia(item.file, force: true);
+          } else if (decision == _DuplicateAction.cancelAll) {
+            break;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error processing duplicate item: $e');
+        // Ensure highlight is cleared even if error occurs
+        if (mounted) {
+          ref.read(mediaListProvider.notifier).clearHighlight(item.existingId);
+        }
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isProcessingDuplicates = false;
+      });
+    }
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('yyyy/MM/dd').format(date);
+  }
+
+  Future<_DuplicateAction> _showDuplicateBottomSheet(
+    ({File file, String existingId}) item,
+    int current,
+    int total,
+    Media? existingMedia,
+  ) async {
+    final completer = Completer<_DuplicateAction>();
+
+    // Pre-fetch file stats
+    final int newFileSize = await item.file.length();
+    final DateTime newFileDate = await item.file.lastModified();
+
+    if (!mounted) return _DuplicateAction.cancel;
+
+    final controller = _scaffoldKey.currentState?.showBottomSheet(
+      (context) {
+        final l10n = AppLocalizations.of(context)!;
+        final theme = Theme.of(context);
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "${l10n.uploadDuplicate} ($current/$total)",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Comparison Cards
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Existing Media Card
+                  Expanded(
+                    child: _buildComparisonCard(
+                      context: context,
+                      title: l10n.duplicateExisting,
+                      isNew: false,
+                      image: existingMedia != null
+                          ? MediaThumbnail(media: existingMedia)
+                          : const Icon(Icons.broken_image),
+                      size: existingMedia != null
+                          ? _formatSize(existingMedia.sizeBytes)
+                          : "-",
+                      date: existingMedia != null
+                          ? (existingMedia.takenAt != null
+                                ? _formatDate(existingMedia.takenAt!)
+                                : _formatDate(existingMedia.uploadedAt))
+                          : "-",
+                      onTap: () => _showFullImage(media: existingMedia),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // New File Card
+                  Expanded(
+                    child: _buildComparisonCard(
+                      context: context,
+                      title: l10n.duplicateNew,
+                      isNew: true,
+                      image: Image.file(item.file, fit: BoxFit.cover),
+                      size: _formatSize(newFileSize),
+                      date: _formatDate(newFileDate),
+                      onTap: () => _showFullImage(file: item.file),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // Primary Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        if (!completer.isCompleted) {
+                          completer.complete(_DuplicateAction.cancel);
+                        }
+                      },
+                      icon: const Icon(Icons.close, size: 18),
+                      label: Text(l10n.duplicateSkip),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: theme.colorScheme.outline),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        if (!completer.isCompleted) {
+                          completer.complete(_DuplicateAction.upload);
+                        }
+                      },
+                      icon: const Icon(Icons.check, size: 18),
+                      label: Text(l10n.duplicateKeep),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Batch Actions
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
+                  onPressed: () {
+                    if (!completer.isCompleted) {
+                      completer.complete(_DuplicateAction.cancelAll);
+                    }
+                  },
+                  icon: const Icon(Icons.layers_outlined),
+                  label: Text(l10n.duplicateSkipRemaining(total - current)),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    foregroundColor: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              Center(
+                child: TextButton.icon(
+                  onPressed: () {
+                    if (!completer.isCompleted) {
+                      completer.complete(_DuplicateAction.uploadAll);
+                    }
+                  },
+                  icon: Icon(
+                    Icons.warning_amber_rounded,
+                    size: 16,
+                    color: theme.colorScheme.outline,
+                  ),
+                  label: Text(
+                    l10n.duplicateForceUploadAll,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16), // Safe area
+            ],
+          ),
+        );
+      },
+      backgroundColor: Colors.transparent,
+      enableDrag: false,
+    );
+
+    controller?.closed.then((_) {
+      if (!completer.isCompleted) {
+        completer.complete(_DuplicateAction.cancel);
+      }
+    });
+
+    // If controller is null (shouldn't happen), complete with cancel
+    if (controller == null && !completer.isCompleted) {
+      completer.complete(_DuplicateAction.cancel);
+    }
+
+    // Wrap the completer to close the sheet when completed
+    return completer.future.then((action) {
+      controller?.close();
+      return action;
+    });
+  }
+
+  Widget _buildComparisonCard({
+    required BuildContext context,
+    required String title,
+    required bool isNew,
+    required Widget image,
+    required String size,
+    required String date,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isNew
+            ? colorScheme.surface
+            : colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: isNew ? Border.all(color: colorScheme.primary, width: 2) : null,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Stack(
+            children: [
+              GestureDetector(
+                onTap: onTap,
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(color: Colors.grey[200], child: image),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                left: isNew ? null : 8,
+                right: isNew ? 8 : null,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isNew
+                        ? colorScheme.primary
+                        : Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    title,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.fullscreen,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Text(
+                  size,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: isNew ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  date,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -164,6 +540,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: colorScheme.surface,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -262,7 +639,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       return PhotoGridItem(
                         media: media,
                         onTap: () {
-                          // TODO: Navigate to photo details
+                          _showFullImage(media: media);
                         },
                         onDelete: () {
                           ref
@@ -293,14 +670,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _pickAndUploadImage,
-        icon: const Icon(Icons.add_photo_alternate_outlined),
-        label: Text(l10n.actionUpload),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        elevation: 2,
-      ),
+      floatingActionButton: _isProcessingDuplicates
+          ? null
+          : FloatingActionButton(
+              onPressed: _pickAndUploadImage,
+              child: const Icon(
+                Icons.add_photo_alternate_outlined,
+              ), // 原本的 icon 改放在 child
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
+              elevation: 2,
+              tooltip: l10n.actionUpload, // 建議補上這個，長按按鈕時會顯示文字提示 (Accessibility)
+            ),
     );
   }
 }
