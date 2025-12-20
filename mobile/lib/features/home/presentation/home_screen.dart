@@ -691,6 +691,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ]
                   : [
+                      IconButton(
+                        icon: const Icon(Icons.map_outlined),
+                        onPressed: () => context.push('/map'),
+                      ),
                       if (user != null)
                         Padding(
                           padding: const EdgeInsets.only(right: 16.0),
@@ -798,6 +802,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               } else {
                                 _showFullImage(media: media);
                               }
+                            },
+                            onMap: () {
+                              context.push('/map?id=${media.id}');
                             },
                             onSelect: () {
                               ref

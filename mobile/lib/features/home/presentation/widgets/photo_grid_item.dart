@@ -10,6 +10,7 @@ class PhotoGridItem extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
   final VoidCallback? onSelect;
+  final VoidCallback? onMap;
   final VoidCallback? onForceUpload;
   final bool isSelected;
 
@@ -21,6 +22,7 @@ class PhotoGridItem extends StatelessWidget {
     this.onDelete,
     this.onEdit,
     this.onSelect,
+    this.onMap,
     this.onForceUpload,
     this.isSelected = false,
   });
@@ -98,6 +100,7 @@ class PhotoGridItem extends StatelessWidget {
                           onDelete: onDelete ?? () {},
                           onEdit: onEdit ?? () {},
                           onSelect: onSelect ?? () {},
+                          onMap: onMap ?? () {},
                         );
                       }
                     },

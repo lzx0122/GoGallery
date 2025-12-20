@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../domain/media.dart';
 import 'media_thumbnail.dart';
 
@@ -10,6 +11,7 @@ class MediaContextMenu extends StatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onEdit;
   final VoidCallback onSelect;
+  final VoidCallback onMap;
 
   const MediaContextMenu({
     super.key,
@@ -18,6 +20,7 @@ class MediaContextMenu extends StatefulWidget {
     required this.onDelete,
     required this.onEdit,
     required this.onSelect,
+    required this.onMap,
   });
 
   static Future<void> show(
@@ -26,6 +29,7 @@ class MediaContextMenu extends StatefulWidget {
     required VoidCallback onDelete,
     required VoidCallback onEdit,
     required VoidCallback onSelect,
+    required VoidCallback onMap,
   }) async {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final position = renderBox.localToGlobal(Offset.zero);
@@ -46,6 +50,7 @@ class MediaContextMenu extends StatefulWidget {
             onDelete: onDelete,
             onEdit: onEdit,
             onSelect: onSelect,
+            onMap: onMap,
           );
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -89,6 +94,7 @@ class _MediaContextMenuState extends State<MediaContextMenu>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final screenSize = MediaQuery.of(context).size;
+    final l10n = AppLocalizations.of(context)!;
 
     final rect = widget.originalRect;
     final centerX = rect.center.dx;
@@ -170,7 +176,7 @@ class _MediaContextMenuState extends State<MediaContextMenu>
                   _buildMenuItem(
                     context,
                     icon: Icons.check_circle_outline,
-                    label: 'Select',
+                    label: l10n.actionSelect,
                     onTap: () {
                       Navigator.of(context).pop();
                       widget.onSelect();
@@ -180,14 +186,27 @@ class _MediaContextMenuState extends State<MediaContextMenu>
                   _buildMenuItem(
                     context,
                     icon: Icons.edit_outlined,
-                    label: 'Edit',
+                    label: l10n.actionEdit,
                     onTap: widget.onEdit,
                   ),
+                  if (widget.media.latitude != null &&
+                      widget.media.longitude != null) ...[
+                    Divider(height: 1, color: colorScheme.outlineVariant),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.map_outlined,
+                      label: l10n.actionShowOnMap,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        widget.onMap();
+                      },
+                    ),
+                  ],
                   Divider(height: 1, color: colorScheme.outlineVariant),
                   _buildMenuItem(
                     context,
                     icon: Icons.delete_outline,
-                    label: 'Delete',
+                    label: l10n.actionDelete,
                     color: colorScheme.error,
                     onTap: () {
                       Navigator.of(context).pop(); // Close menu first

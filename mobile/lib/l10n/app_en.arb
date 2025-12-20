@@ -17,6 +17,8 @@
   "actionConfirm": "Confirm",
   "actionSave": "Save",
   "actionEdit": "Edit",
+  "actionSelect": "Select",
+  "actionShowOnMap": "Show on Map",
   "actionRetry": "Retry",
   "deleteConfirm": "Are you sure you want to delete these items?",
 

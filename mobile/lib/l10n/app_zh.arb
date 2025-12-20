@@ -13,6 +13,8 @@
   "actionConfirm": "確認",
   "actionSave": "儲存",
   "actionEdit": "編輯",
+  "actionSelect": "選取",
+  "actionShowOnMap": "在地圖上顯示",
   "actionRetry": "重試",
   "deleteConfirm": "確定要刪除這些項目嗎？",
 
