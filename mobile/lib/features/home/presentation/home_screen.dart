@@ -111,6 +111,69 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _scrollToDate(DateTime date) async {
+    final mediaList = ref.read(mediaListProvider).value;
+    if (mediaList == null) return;
+
+    // groupedMedia keys are sorted descending (Newest first)
+    final groupedMedia = _groupMediaByDate(mediaList);
+
+    double offset = 0;
+    final columnCount = ref.read(gridColumnCountProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemWidth = (screenWidth - (columnCount - 1) * 2.0) / columnCount;
+    const headerHeight = 48.0;
+
+    bool found = false;
+    final targetDate = DateTime(date.year, date.month, date.day);
+
+    for (final entry in groupedMedia.entries) {
+      final groupDate = entry.key;
+
+      // Since list is descending:
+      // If groupDate > targetDate, this group is NEWER, so we skip it (add its height)
+      if (groupDate.isAfter(targetDate)) {
+        offset += headerHeight;
+        final rows = (entry.value.length / columnCount).ceil();
+        offset += rows * (itemWidth + 2.0);
+      } else {
+        // Found the first group where groupDate <= targetDate
+        // This is our scroll target
+        found = true;
+        break;
+      }
+    }
+
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(
+        found ? offset : _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  Future<void> _pickDateAndJump() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(1970),
+      lastDate: now,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(
+            context,
+          ).copyWith(colorScheme: Theme.of(context).colorScheme),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      await _scrollToDate(picked);
+    }
+  }
+
   Future<void> _deleteSelected(Set<String> ids) async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -698,6 +761,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   ),
                                 ]
                               : [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.calendar_month_outlined,
+                                    ),
+                                    onPressed: _pickDateAndJump,
+                                  ),
                                   IconButton(
                                     icon: const Icon(Icons.map_outlined),
                                     onPressed: () => context.push('/map'),
