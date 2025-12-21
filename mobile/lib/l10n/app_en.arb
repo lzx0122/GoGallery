@@ -9,6 +9,8 @@
   "navAlbums": "Albums",
   "navProfile": "Profile",
   "navSettings": "Settings",
+  "navPhotos": "Photos",
+  "navTrash": "Trash",
 
   "actionUpload": "Upload",
   "actionDelete": "Delete",
@@ -57,6 +59,32 @@
     }
   },
   "duplicateForceUploadAll": "Force upload all (Not recommended)",
+
+  "trashTitle": "Trash Bin",
+  "trashEmpty": "Trash is empty",
+  "trashDialogTitle": "Restore or Delete?",
+  "trashDialogContent": "Do you want to restore this item or delete it permanently?",
+  "actionDeletePermanently": "Delete Permanently",
+  "actionRestore": "Restore",
+  "actionSelectAll": "Select All",
+  "actionDeselectAll": "Deselect All",
+  "selectedTitle": "{count} Selected",
+  "@selectedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dialogDeleteSelectedTitle": "Delete Selected?",
+  "dialogDeleteSelectedContent": "Are you sure you want to delete {count} items permanently?",
+  "@dialogDeleteSelectedContent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
 
   "settingsTheme": "Theme",
   "settingsLanguage": "Language",

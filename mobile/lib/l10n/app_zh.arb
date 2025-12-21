@@ -5,6 +5,8 @@
   "navAlbums": "相簿",
   "navProfile": "個人檔案",
   "navSettings": "設定",
+  "navPhotos": "相片",
+  "navTrash": "垃圾桶",
 
   "actionUpload": "上傳",
   "actionDelete": "刪除",
@@ -46,6 +48,18 @@
   "duplicateUploadAll": "全部上傳",
   "duplicateSkipRemaining": "其餘 {count} 張照片全部略過",
   "duplicateForceUploadAll": "強制全部上傳 (不推薦)",
+
+  "trashTitle": "垃圾桶",
+  "trashEmpty": "垃圾桶是空的",
+  "trashDialogTitle": "復原或永久刪除？",
+  "trashDialogContent": "您想要復原此項目還是永久刪除？",
+  "actionDeletePermanently": "永久刪除",
+  "actionRestore": "復原",
+  "actionSelectAll": "全選",
+  "actionDeselectAll": "取消全選",
+  "selectedTitle": "已選取 {count} 項",
+  "dialogDeleteSelectedTitle": "刪除已選項目？",
+  "dialogDeleteSelectedContent": "確定要永久刪除這 {count} 個項目嗎？",
 
   "settingsTheme": "主題",
   "settingsLanguage": "語言",

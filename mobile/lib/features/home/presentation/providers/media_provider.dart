@@ -176,7 +176,9 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
         final currentList = state.value ?? [];
         if (result != null) {
           // Remove temp item first (if any)
-          final listWithoutTemp = currentList.where((m) => m.id != tempId).toList();
+          final listWithoutTemp = currentList
+              .where((m) => m.id != tempId)
+              .toList();
           state = AsyncValue.data([result, ...listWithoutTemp]);
         }
       }
@@ -283,10 +285,11 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
 }
 
 // Trash Provider
-final trashListProvider =
-    AsyncNotifierProvider<TrashListNotifier, List<Media>>(() {
-  return TrashListNotifier();
-});
+final trashListProvider = AsyncNotifierProvider<TrashListNotifier, List<Media>>(
+  () {
+    return TrashListNotifier();
+  },
+);
 
 class TrashListNotifier extends AsyncNotifier<List<Media>> {
   @override
@@ -339,17 +342,54 @@ class TrashListNotifier extends AsyncNotifier<List<Media>> {
   }
 
   Future<void> deletePermanently(String mediaId) async {
+    await deletePermanentlyMedias([mediaId]);
+  }
+
+  Future<void> restoreMedias(List<String> mediaIds) async {
     final token = await _getToken();
     if (token == null) return;
 
-    // Optimistic update
     final currentList = state.value ?? [];
     final previousList = [...currentList];
-    state = AsyncValue.data(currentList.where((m) => m.id != mediaId).toList());
+
+    // Optimistic update
+    state = AsyncValue.data(
+      currentList.where((m) => !mediaIds.contains(m.id)).toList(),
+    );
 
     try {
       final repository = ref.read(mediaRepositoryProvider);
-      await repository.deleteMedia(token, mediaId, permanent: true);
+      // Wait for all restores to complete
+      await Future.wait(
+        mediaIds.map((id) => repository.restoreMedia(token, id)),
+      );
+      ref.refresh(mediaListProvider);
+    } catch (e) {
+      state = AsyncValue.data(previousList);
+      rethrow;
+    }
+  }
+
+  Future<void> deletePermanentlyMedias(List<String> mediaIds) async {
+    final token = await _getToken();
+    if (token == null) return;
+
+    final currentList = state.value ?? [];
+    final previousList = [...currentList];
+
+    // Optimistic update
+    state = AsyncValue.data(
+      currentList.where((m) => !mediaIds.contains(m.id)).toList(),
+    );
+
+    try {
+      final repository = ref.read(mediaRepositoryProvider);
+      // Wait for all deletes to complete
+      await Future.wait(
+        mediaIds.map(
+          (id) => repository.deleteMedia(token, id, permanent: true),
+        ),
+      );
     } catch (e) {
       state = AsyncValue.data(previousList);
       rethrow;

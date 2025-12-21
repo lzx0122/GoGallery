@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:mobile/l10n/generated/app_localizations.dart';
 
 class CustomBottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -45,14 +46,14 @@ class CustomBottomNavigation extends StatelessWidget {
                 _NavItem(
                   icon: Icons.photo_library_outlined,
                   activeIcon: Icons.photo_library,
-                  label: 'Photos',
+                  label: AppLocalizations.of(context)!.navPhotos,
                   isSelected: currentIndex == 0,
                   onTap: () => onTap(0),
                 ),
                 _NavItem(
                   icon: Icons.delete_outline,
                   activeIcon: Icons.delete,
-                  label: 'Trash',
+                  label: AppLocalizations.of(context)!.navTrash,
                   isSelected: currentIndex == 1,
                   onTap: () => onTap(1),
                 ),
