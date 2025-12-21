@@ -45,7 +45,7 @@ dependencies:
   google_fonts: ^6.3.3
   go_router: ^17.0.1
   font_awesome_flutter: ^10.12.0
-  google_sign_in: ^6.2.1
+  google_sign_in: ^6.3.0
   http: ^1.6.0
   cached_network_image: ^3.4.1
   image_picker: ^1.2.1
@@ -54,6 +54,11 @@ dependencies:
   flutter_blurhash: ^0.9.1
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
+  pro_image_editor: ^11.15.0
+  photofilters: ^3.0.1
+  image_background_remover: ^0.0.5
+  path_provider: ^2.1.5
+  image: ^3.3.0
 
 dev_dependencies:
   flutter_test:

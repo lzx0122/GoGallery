@@ -148,29 +148,9 @@ class Media {
     );
   }
 
-  // Helper to get full URL (assuming local dev for now)
-  // In production, this should be configured via environment variables
+  // Helper to get full URL using the new file API endpoint
   String get url {
     final baseUrl = AppConfig.baseUrl;
-
-    // Construct path: /uploads/uid/year/month/hash.ext
-    // But wait, the backend stores relative path in DB but doesn't expose it directly in JSON?
-    // Ah, the backend model has `StoragePath` but it is `json:"-"`.
-    // We need to construct it or the backend should serve it.
-    // Currently the backend doesn't have a "Serve File" API, only Upload and List.
-    // We need to add a Static File Server in Go or Nginx.
-    // For now, let's assume the Go server serves `uploads/` directory statically.
-
-    // Wait, I missed adding Static file serving in Go!
-    // I should fix the backend to serve static files first.
-    return '$baseUrl/uploads/$userId/${uploadedAt.year}/${uploadedAt.month.toString().padLeft(2, '0')}/$fileHash${_getExtension()}';
-  }
-
-  String _getExtension() {
-    // Simple extension guesser
-    if (mimeType == 'image/jpeg') return '.jpg';
-    if (mimeType == 'image/png') return '.png';
-    if (mimeType == 'video/mp4') return '.mp4';
-    return '';
+    return '$baseUrl/api/media/$id/file';
   }
 }

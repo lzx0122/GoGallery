@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../auth/presentation/providers/auth_provider.dart';
 import 'package:mobile/l10n/generated/app_localizations.dart';
 import '../../home/presentation/providers/media_provider.dart';
 import '../../home/domain/media.dart';
@@ -17,6 +18,8 @@ class MapScreen extends ConsumerWidget {
     final mediaListAsync = ref.watch(mediaListProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final user = ref.watch(authProvider).value;
+    final token = user?.token;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.mapTitle)),
@@ -80,7 +83,7 @@ class MapScreen extends ConsumerWidget {
                     height: 50,
                     child: GestureDetector(
                       onTap: () {
-                        _showImageDialog(context, media);
+                        _showImageDialog(context, media, token);
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -95,8 +98,12 @@ class MapScreen extends ConsumerWidget {
                         ),
                         child: ClipOval(
                           child: CachedNetworkImage(
+                            key: ValueKey(token),
                             imageUrl: media.url,
                             fit: BoxFit.cover,
+                            httpHeaders: token != null
+                                ? {'Authorization': 'Bearer $token'}
+                                : null,
                             placeholder: (context, url) => Container(
                               color: theme.colorScheme.surfaceContainerHighest,
                             ),
@@ -118,7 +125,7 @@ class MapScreen extends ConsumerWidget {
     );
   }
 
-  void _showImageDialog(BuildContext context, Media media) {
+  void _showImageDialog(BuildContext context, Media media, String? token) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -130,8 +137,12 @@ class MapScreen extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: CachedNetworkImage(
+                key: ValueKey(token),
                 imageUrl: media.url,
                 fit: BoxFit.contain,
+                httpHeaders: token != null
+                    ? {'Authorization': 'Bearer $token'}
+                    : null,
                 placeholder: (context, url) =>
                     const CircularProgressIndicator(),
               ),

@@ -3,6 +3,7 @@ package media
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -148,4 +149,26 @@ func (h *Handler) DeleteHandler(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// GetFileHandler 提供檔案下載
+func (h *Handler) GetFileHandler(c *gin.Context) {
+	userID := c.MustGet("userID").(string)
+	mediaID := c.Param("id")
+
+	if mediaID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing media id"})
+		return
+	}
+
+	// 查詢檔案路徑
+	media, err := h.Service.GetByID(c.Request.Context(), userID, mediaID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "media not found"})
+		return
+	}
+
+	// 提供檔案
+	filePath := filepath.Join(h.Service.UploadDir, media.StoragePath)
+	c.File(filePath)
 }

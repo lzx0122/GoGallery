@@ -17,6 +17,11 @@ import 'widgets/photo_grid_item.dart';
 import 'widgets/full_image_viewer.dart';
 import 'widgets/media_thumbnail.dart';
 import 'widgets/custom_bottom_navigation.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import '../../../../screens/photo_editor_screen.dart';
+import '../../../../services/image_processing_service.dart';
 import 'trash_screen.dart';
 
 enum _DuplicateAction { cancel, upload, uploadAll, cancelAll }
@@ -327,6 +332,99 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       setState(() {
         _isProcessingDuplicates = false;
       });
+    }
+  }
+
+  Future<void> _editMedia(Media media) async {
+    final l10n = AppLocalizations.of(context)!;
+    File? fileToEdit;
+
+    // 1. Get File
+    if (media.localFile != null && media.localFile!.existsSync()) {
+      fileToEdit = media.localFile!;
+    } else {
+      // Download to temp
+      try {
+        // Show loading
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.editorDownloadingImage)));
+        }
+
+        final url = Uri.parse(media.url);
+        debugPrint('Downloading image from: $url');
+
+        final user = ref.read(authProvider).value;
+        final token = user?.token;
+        final headers = token != null
+            ? {'Authorization': 'Bearer $token'}
+            : <String, String>{};
+
+        final response = await http.get(url, headers: headers);
+
+        if (response.statusCode == 200) {
+          final tempDir = await getTemporaryDirectory();
+          // Use id or hash
+          final ext = path.extension(media.originalFilename).isEmpty
+              ? '.jpg'
+              : path.extension(media.originalFilename);
+          fileToEdit = File('${tempDir.path}/${media.id}_edit$ext');
+          await fileToEdit.writeAsBytes(response.bodyBytes);
+        } else {
+          debugPrint('Download failed with status: ${response.statusCode}');
+          throw Exception(
+            'Failed to download image (Status: ${response.statusCode})',
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.editorPrepareFailed(e.toString()))),
+          );
+        }
+        return;
+      }
+    }
+
+    if (!mounted || fileToEdit == null) return;
+
+    // 2. Open Editor
+    final resultBytes = await Navigator.push<Uint8List>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PhotoEditorScreen(imageFile: fileToEdit!),
+      ),
+    );
+
+    // 3. Handle Result
+    if (resultBytes != null) {
+      // Save to file and upload
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final fileName =
+            'edited_${DateTime.now().millisecondsSinceEpoch}.png'; // Editor output is likely PNG or original format. ProImageEditor usually returns standard bytes.
+        final savedFile = File('${tempDir.path}/$fileName');
+        await savedFile.writeAsBytes(resultBytes);
+
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.editorSavingImage)));
+
+          // Upload as new media
+          await ref.read(mediaListProvider.notifier).uploadMedia(savedFile);
+
+          // Reset selection if any
+          ref.read(mediaSelectionProvider.notifier).clear();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.editorSaveFailed(e.toString()))),
+          );
+        }
+      }
     }
   }
 
@@ -728,15 +826,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     IconButton(
                                       icon: const Icon(Icons.edit_outlined),
                                       onPressed: () {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Edit feature coming soon',
-                                            ),
-                                          ),
+                                        final selectedId = selectedIds.first;
+                                        final mediaList = ref
+                                            .read(mediaListProvider)
+                                            .value;
+                                        final media = mediaList?.firstWhere(
+                                          (m) => m.id == selectedId,
                                         );
+
+                                        if (media != null) {
+                                          _editMedia(media);
+                                        }
                                       },
                                     ),
                                   IconButton(
@@ -908,15 +1008,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           _deleteSelected({media.id});
                                         },
                                         onEdit: () {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Edit feature coming soon',
-                                              ),
-                                            ),
-                                          );
+                                          _editMedia(media);
                                         },
                                       );
                                     }, childCount: entry.value.length),

@@ -1,10 +1,11 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/media.dart';
 
-class MediaThumbnail extends StatelessWidget {
+class MediaThumbnail extends ConsumerWidget {
   final Media media;
   final BoxFit fit;
 
@@ -15,9 +16,11 @@ class MediaThumbnail extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final user = ref.watch(authProvider).value;
+    final token = user?.token;
 
     if (media.localFile != null) {
       return Image.file(media.localFile!, fit: fit);
@@ -29,8 +32,12 @@ class MediaThumbnail extends StatelessWidget {
         if (media.blurHash.isNotEmpty) BlurHash(hash: media.blurHash),
         if (media.url.startsWith('http'))
           CachedNetworkImage(
+            key: ValueKey(token),
             imageUrl: media.url,
             fit: fit,
+            httpHeaders: token != null
+                ? {'Authorization': 'Bearer $token'}
+                : null,
             placeholder: (context, url) => media.blurHash.isNotEmpty
                 ? const SizedBox.shrink()
                 : Container(color: colorScheme.surfaceContainerHighest),

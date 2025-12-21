@@ -33,9 +33,10 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      // 將 ID Token 注入到 User 物件中，因為後端回傳的 User 可能不包含 Token
-      // 但後續 API 呼叫需要這個 Token
-      data['token'] = idToken;
+      // 如果後端沒有回傳 token，則使用 Google ID Token 作為 fallback
+      if (data['token'] == null) {
+        data['token'] = idToken;
+      }
       return User.fromMap(data);
     } else {
       throw Exception('Failed to login: ${response.body}');

@@ -197,6 +197,32 @@ func (s *Service) List(ctx context.Context, userID string, limit, offset int) ([
 	return list, nil
 }
 
+// GetByID 取得單一媒體（包含 storage_path）
+func (s *Service) GetByID(ctx context.Context, userID string, mediaID string) (*Media, error) {
+	query := `
+		SELECT id, user_id, original_filename, storage_path, file_hash, size_bytes, mime_type,
+		       width, height, duration, taken_at, latitude, longitude,
+		       camera_make, camera_model, exposure_time, aperture, iso,
+		       blur_hash, dominant_color, uploaded_at, deleted_at
+		FROM media
+		WHERE id = $1 AND user_id = $2
+	`
+	m := &Media{}
+	err := s.DB.QueryRowContext(ctx, query, mediaID, userID).Scan(
+		&m.ID, &m.UserID, &m.OriginalFilename, &m.StoragePath, &m.FileHash, &m.SizeBytes, &m.MimeType,
+		&m.Width, &m.Height, &m.Duration, &m.TakenAt, &m.Latitude, &m.Longitude,
+		&m.CameraMake, &m.CameraModel, &m.ExposureTime, &m.Aperture, &m.ISO,
+		&m.BlurHash, &m.DominantColor, &m.UploadedAt, &m.DeletedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("media not found")
+		}
+		return nil, fmt.Errorf("failed to query media: %w", err)
+	}
+	return m, nil
+}
+
 // ListTrash 取得垃圾桶中的媒體列表
 func (s *Service) ListTrash(ctx context.Context, userID string, limit, offset int) ([]*Media, error) {
 	query := `
@@ -251,7 +277,7 @@ func (s *Service) Restore(ctx context.Context, userID string, mediaID string) er
 	// 但因為我們在 soft delete 時保留了 file_hash，且 unique index 是 WHERE deleted_at IS NULL
 	// 所以如果現在有一個 active 的相同 hash 檔案，還原會失敗 (Postgres 會報錯)
 	// 我們可以讓它報錯，或者先檢查
-	
+
 	updateQuery := `UPDATE media SET deleted_at = NULL WHERE id = $1 AND user_id = $2`
 	_, err = s.DB.ExecContext(ctx, updateQuery, mediaID, userID)
 	if err != nil {
