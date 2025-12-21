@@ -36,10 +36,14 @@ class ProfileScreen extends ConsumerWidget {
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: colorScheme.primaryContainer,
-                    backgroundImage: user.photoUrl != null
+                    backgroundImage:
+                        (user.photoUrl != null &&
+                            user.photoUrl!.startsWith('http'))
                         ? NetworkImage(user.photoUrl!)
                         : null,
-                    child: user.photoUrl == null
+                    child:
+                        (user.photoUrl == null ||
+                            !user.photoUrl!.startsWith('http'))
                         ? Text(
                             user.name?.substring(0, 1).toUpperCase() ?? 'U',
                             style: theme.textTheme.headlineMedium?.copyWith(

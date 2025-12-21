@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,7 +29,22 @@ func (h *Handler) UploadHandler(c *gin.Context) {
 	}
 
 	force := c.Query("force") == "true"
-	result, err := h.Service.Upload(c.Request.Context(), userID, fileHeader, force)
+	var takenAt *time.Time
+	if ta := c.PostForm("taken_at"); ta != "" {
+		// Try RFC3339 (standard)
+		if t, err := time.Parse(time.RFC3339, ta); err == nil {
+			takenAt = &t
+		} else {
+			// Try without timezone (fallback)
+			if t, err := time.Parse("2006-01-02T15:04:05.999999999", ta); err == nil {
+				takenAt = &t
+			} else {
+				fmt.Printf("Warning: failed to parse taken_at '%s': %v\n", ta, err)
+			}
+		}
+	}
+
+	result, err := h.Service.Upload(c.Request.Context(), userID, fileHeader, force, takenAt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -171,4 +187,28 @@ func (h *Handler) GetFileHandler(c *gin.Context) {
 	// 提供檔案
 	filePath := filepath.Join(h.Service.UploadDir, media.StoragePath)
 	c.File(filePath)
+}
+
+// CheckHashHandler 檢查 Hash 是否已存在
+func (h *Handler) CheckHashHandler(c *gin.Context) {
+	userID := c.MustGet("userID").(string)
+	hash := c.Param("hash")
+
+	if hash == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing hash"})
+		return
+	}
+
+	media, err := h.Service.CheckExistsByHash(c.Request.Context(), userID, hash)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if media == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, media)
 }

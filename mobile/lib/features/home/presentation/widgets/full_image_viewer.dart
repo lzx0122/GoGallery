@@ -55,16 +55,24 @@ class FullImageViewer extends ConsumerWidget {
       if (media!.localFile != null) {
         return Image.file(media!.localFile!, fit: BoxFit.contain);
       }
-      return CachedNetworkImage(
-        key: ValueKey(token),
-        imageUrl: media!.url,
-        fit: BoxFit.contain,
-        httpHeaders: token != null ? {'Authorization': 'Bearer $token'} : null,
-        placeholder: (context, url) =>
-            const Center(child: CircularProgressIndicator(color: Colors.white)),
-        errorWidget: (context, url, error) => const Center(
-          child: Icon(Icons.broken_image, color: Colors.white, size: 48),
-        ),
+      if (media!.url.startsWith('http')) {
+        return CachedNetworkImage(
+          key: ValueKey(token),
+          imageUrl: media!.url,
+          fit: BoxFit.contain,
+          httpHeaders: token != null
+              ? {'Authorization': 'Bearer $token'}
+              : null,
+          placeholder: (context, url) => const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          ),
+          errorWidget: (context, url, error) => const Center(
+            child: Icon(Icons.broken_image, color: Colors.white, size: 48),
+          ),
+        );
+      }
+      return const Center(
+        child: Icon(Icons.broken_image, color: Colors.white, size: 48),
       );
     }
 

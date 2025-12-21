@@ -222,7 +222,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             final file = File(image.path);
             return await ref
                 .read(mediaListProvider.notifier)
-                .uploadMedia(file, highlightDuplicate: false);
+                .uploadMedia(
+                  file,
+                  highlightDuplicate: false,
+                  takenAt: await file.lastModified(),
+                );
           }),
         );
 
@@ -273,7 +277,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (autoAction == _DuplicateAction.uploadAll) {
         ref
             .read(mediaListProvider.notifier)
-            .uploadMedia(item.file, force: true);
+            .uploadMedia(
+              item.file,
+              force: true,
+              takenAt: await item.file.lastModified(),
+            );
         continue;
       }
 
@@ -309,12 +317,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (decision == _DuplicateAction.upload) {
             ref
                 .read(mediaListProvider.notifier)
-                .uploadMedia(item.file, force: true);
+                .uploadMedia(
+                  item.file,
+                  force: true,
+                  takenAt: await item.file.lastModified(),
+                );
           } else if (decision == _DuplicateAction.uploadAll) {
             autoAction = _DuplicateAction.uploadAll;
             ref
                 .read(mediaListProvider.notifier)
-                .uploadMedia(item.file, force: true);
+                .uploadMedia(
+                  item.file,
+                  force: true,
+                  takenAt: await item.file.lastModified(),
+                );
           } else if (decision == _DuplicateAction.cancelAll) {
             break;
           }

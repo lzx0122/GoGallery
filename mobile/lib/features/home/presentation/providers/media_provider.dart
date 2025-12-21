@@ -85,6 +85,7 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
     File file, {
     bool force = false,
     bool highlightDuplicate = true,
+    DateTime? takenAt,
   }) async {
     final tempId =
         'temp_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(10000)}';
@@ -131,6 +132,7 @@ class MediaListNotifier extends AsyncNotifier<List<Media>> {
         file,
         token,
         force: force,
+        takenAt: takenAt,
         onSendProgress: (sent, total) {
           if (total <= 0) return;
           final progress = sent / total;

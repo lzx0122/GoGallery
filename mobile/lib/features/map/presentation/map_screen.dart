@@ -97,19 +97,27 @@ class MapScreen extends ConsumerWidget {
                           ],
                         ),
                         child: ClipOval(
-                          child: CachedNetworkImage(
-                            key: ValueKey(token),
-                            imageUrl: media.url,
-                            fit: BoxFit.cover,
-                            httpHeaders: token != null
-                                ? {'Authorization': 'Bearer $token'}
-                                : null,
-                            placeholder: (context, url) => Container(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                            ),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.error),
-                          ),
+                          child: media.url.startsWith('http')
+                              ? CachedNetworkImage(
+                                  key: ValueKey(token),
+                                  imageUrl: media.url,
+                                  fit: BoxFit.cover,
+                                  httpHeaders: token != null
+                                      ? {'Authorization': 'Bearer $token'}
+                                      : null,
+                                  placeholder: (context, url) => Container(
+                                    color: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(Icons.error),
+                                )
+                              : Container(
+                                  color:
+                                      theme.colorScheme.surfaceContainerHighest,
+                                  child: const Icon(Icons.broken_image),
+                                ),
                         ),
                       ),
                     ),
@@ -136,16 +144,18 @@ class MapScreen extends ConsumerWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                key: ValueKey(token),
-                imageUrl: media.url,
-                fit: BoxFit.contain,
-                httpHeaders: token != null
-                    ? {'Authorization': 'Bearer $token'}
-                    : null,
-                placeholder: (context, url) =>
-                    const CircularProgressIndicator(),
-              ),
+              child: media.url.startsWith('http')
+                  ? CachedNetworkImage(
+                      key: ValueKey(token),
+                      imageUrl: media.url,
+                      fit: BoxFit.contain,
+                      httpHeaders: token != null
+                          ? {'Authorization': 'Bearer $token'}
+                          : null,
+                      placeholder: (context, url) =>
+                          const CircularProgressIndicator(),
+                    )
+                  : const Icon(Icons.broken_image, size: 64),
             ),
           ],
         ),

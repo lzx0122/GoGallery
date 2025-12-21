@@ -103,12 +103,8 @@ ALTER TABLE media ADD COLUMN IF NOT EXISTS exposure_time VARCHAR(20);
 ALTER TABLE media ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_media_deleted_at ON media (deleted_at);
 
--- Drop old constraint if exists (to allow soft-deleted duplicates)
-ALTER TABLE media DROP CONSTRAINT IF EXISTS uq_user_hash;
-ALTER TABLE media DROP CONSTRAINT IF EXISTS uq_media_user_hash;
-
--- Drop the partial unique index to allow active duplicates (Keep Both feature)
-DROP INDEX IF EXISTS idx_media_user_hash_active;
+-- Ensure partial unique index to prevent duplicates for active records
+CREATE UNIQUE INDEX IF NOT EXISTS idx_media_user_hash_active ON media (user_id, file_hash) WHERE deleted_at IS NULL;
 
 ALTER TABLE media ADD COLUMN IF NOT EXISTS aperture DOUBLE PRECISION;
 ALTER TABLE media ADD COLUMN IF NOT EXISTS iso INTEGER;

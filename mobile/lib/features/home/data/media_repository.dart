@@ -12,12 +12,14 @@ class MediaRepository {
     File file,
     String token, {
     bool force = false,
+    DateTime? takenAt,
     void Function(int, int)? onSendProgress,
   }) async {
     try {
       String fileName = file.path.split('/').last;
       FormData formData = FormData.fromMap({
         "file": await MultipartFile.fromFile(file.path, filename: fileName),
+        if (takenAt != null) "taken_at": takenAt.toUtc().toIso8601String(),
       });
 
       Response response = await _dio.post(
@@ -80,8 +82,33 @@ class MediaRepository {
     }
   }
 
-  Future<void> deleteMedia(String token, String mediaId,
-      {bool permanent = false}) async {
+  Future<Media?> checkHash(String hash, String token) async {
+    try {
+      Response response = await _dio.get(
+        '${AppConfig.apiUrl}/media/check/$hash',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return Media.fromJson(response.data);
+      }
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return null;
+      }
+      rethrow;
+    } catch (e) {
+      print('Check hash error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteMedia(
+    String token,
+    String mediaId, {
+    bool permanent = false,
+  }) async {
     try {
       await _dio.delete(
         '${AppConfig.apiUrl}/media/$mediaId',

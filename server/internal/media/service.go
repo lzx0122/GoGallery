@@ -33,7 +33,7 @@ type UploadResult struct {
 }
 
 // Upload 處理檔案上傳
-func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipart.FileHeader, force bool) (*UploadResult, error) {
+func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipart.FileHeader, force bool, takenAt *time.Time) (*UploadResult, error) {
 	src, err := fileHeader.Open()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
@@ -95,6 +95,11 @@ func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipa
 		meta = &Media{}
 	}
 
+	// 如果 EXIF 解析不到時間且客戶端有提供，則作為回退
+	if meta.TakenAt == nil && takenAt != nil {
+		meta.TakenAt = takenAt
+	}
+
 	// 5. 寫入資料庫
 	media := &Media{
 		UserID:           userID,
@@ -138,6 +143,33 @@ func (s *Service) checkExists(ctx context.Context, userID, fileHash string) (str
 		return "", fmt.Errorf("failed to check existence: %w", err)
 	}
 	return id, nil
+}
+
+// CheckExistsByHash 公開檢查 Hash 邏輯
+func (s *Service) CheckExistsByHash(ctx context.Context, userID, hash string) (*Media, error) {
+	query := `
+		SELECT id, user_id, original_filename, storage_path, file_hash, size_bytes, mime_type,
+		       width, height, duration, taken_at, latitude, longitude,
+		       camera_make, camera_model, exposure_time, aperture, iso,
+		       blur_hash, dominant_color, uploaded_at
+		FROM media
+		WHERE user_id = $1 AND file_hash = $2 AND deleted_at IS NULL
+		LIMIT 1
+	`
+	m := &Media{}
+	err := s.DB.QueryRowContext(ctx, query, userID, hash).Scan(
+		&m.ID, &m.UserID, &m.OriginalFilename, &m.StoragePath, &m.FileHash, &m.SizeBytes, &m.MimeType,
+		&m.Width, &m.Height, &m.Duration, &m.TakenAt, &m.Latitude, &m.Longitude,
+		&m.CameraMake, &m.CameraModel, &m.ExposureTime, &m.Aperture, &m.ISO,
+		&m.BlurHash, &m.DominantColor, &m.UploadedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to query media by hash: %w", err)
+	}
+	return m, nil
 }
 
 func (s *Service) insertMedia(ctx context.Context, m *Media) error {

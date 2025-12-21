@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mobile/l10n/generated/app_localizations.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/sync_providers.dart';
+import '../domain/sync_service.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -142,6 +143,81 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              "相簿同步",
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          SwitchListTile.adaptive(
+            secondary: const Icon(Icons.sync),
+            title: const Text("自動同步"),
+            subtitle: const Text("於背景自動同步手機相簿"),
+            value: ref.watch(autoSyncProvider),
+            onChanged: (value) {
+              ref.read(autoSyncProvider.notifier).state = value;
+            },
+          ),
+          Consumer(
+            builder: (context, ref, child) {
+              final syncStatus = ref.watch(syncStatusProvider);
+              final isSyncing = syncStatus.isSyncing;
+
+              return Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.cloud_upload_outlined),
+                    title: const Text("立即同步"),
+                    subtitle: isSyncing
+                        ? Text(
+                            "正在同步 (${syncStatus.currentCount}/${syncStatus.totalCount})",
+                          )
+                        : (syncStatus.lastError != null
+                              ? Text(
+                                  "上次同步失敗: ${syncStatus.lastError}",
+                                  style: const TextStyle(color: Colors.red),
+                                )
+                              : (syncStatus.lastSuccessMessage != null
+                                    ? Text(
+                                        syncStatus.lastSuccessMessage!,
+                                        style: TextStyle(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      )
+                                    : const Text("手動觸發相簿掃描與上傳"))),
+                    trailing: isSyncing
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.play_arrow),
+                            onPressed: () {
+                              ref.read(syncServiceProvider).startSync();
+                            },
+                          ),
+                  ),
+                  if (isSyncing)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: LinearProgressIndicator(
+                        value: syncStatus.totalCount > 0
+                            ? syncStatus.currentCount / syncStatus.totalCount
+                            : null,
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
